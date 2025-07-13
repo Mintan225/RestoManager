@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { authService } from "@/lib/auth";
+import  authService  from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Trash2, Search, Package } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";

@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/sidebar";
-import { authService } from "@/lib/auth";
+import  authService  from "@/lib/auth";
 import { useEffect, useState } from "react";
 
 // Import pages
@@ -26,6 +26,7 @@ import SuperAdminLogin from "@/pages/super-admin-login";
 import SuperAdminDashboard from "@/pages/super-admin-dashboard";
 import SuperAdminDataManagement from "@/pages/super-admin-data-management";
 import SystemConfig from "@/pages/system-config";
+import ErrorBoundary from "@/components/ErrorBoundary"; // Importez ErrorBoundary
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -117,7 +118,10 @@ function Router() {
       
       {/* Customer menu routes (public, no auth required) */}
       <Route path="/menu/:tableNumber">
-        <CustomerMenu />
+        {/* ENVELOPPEZ CUSTOMERMENU AVEC ERRORBOUNDARY ICI */}
+        <ErrorBoundary>
+          <CustomerMenu />
+        </ErrorBoundary>
       </Route>
       
       {/* QR Code route - redirects to menu */}

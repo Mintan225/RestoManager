@@ -9,13 +9,14 @@ import { formatCurrency } from "@/lib/currency";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+// COMMENTEZ CES IMPORTS DE DIALOG
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -24,9 +25,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TrendingUp, Euro, Calendar, Download, Plus, Trash2 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+// COMMENTEZ CES IMPORTS D'ALERTDIALOG
+// import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 // Removed apiRequest import - using native fetch instead
-import { authService } from "@/lib/auth";
+import  authService  from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -94,84 +96,101 @@ function SaleForm({ onSuccess }: { onSuccess?: () => void }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter une vente
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Ajouter une vente</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="amount">Montant (FCFA)</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              {...form.register("amount")}
-              placeholder="0.00"
-            />
-            {form.formState.errors.amount && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.amount.message}
-              </p>
-            )}
-          </div>
-          
-          <div>
-            <Label htmlFor="paymentMethod">Méthode de paiement</Label>
-            <Select onValueChange={(value) => form.setValue("paymentMethod", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Espèces</SelectItem>
-                <SelectItem value="orange_money">Orange Money</SelectItem>
-                <SelectItem value="mtn_momo">MTN Mobile Money</SelectItem>
-                <SelectItem value="moov_money">Moov Money</SelectItem>
-                <SelectItem value="wave">Wave</SelectItem>
-              </SelectContent>
-            </Select>
-            {form.formState.errors.paymentMethod && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.paymentMethod.message}
-              </p>
-            )}
-          </div>
+    // ENVELOPPEZ LE TOUT DANS UN FRAGMENT
+    <>
+      {/* COMMENTEZ Dialog et DialogTrigger */}
+      {/* <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild> */}
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter une vente
+          </Button>
+        {/* </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter une vente</DialogTitle>
+          </DialogHeader> */}
+          {/* AFFICHEZ LE FORMULAIRE DIRECTEMENT SI 'open' EST VRAI */}
+          {open && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                <h2 className="text-xl font-bold mb-4">Ajouter une vente</h2>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div>
+                    <Label htmlFor="amount">Montant (FCFA)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      step="0.01"
+                      {...form.register("amount")}
+                      placeholder="0.00"
+                    />
+                    {form.formState.errors.amount && (
+                      <p className="text-sm text-red-500 mt-1">
+                        {form.formState.errors.amount.message}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="paymentMethod">Méthode de paiement</Label>
+                    <Select
+                      value={form.watch("paymentMethod")} // Assurez-vous que SelectValue est stable
+                      onValueChange={(value) => form.setValue("paymentMethod", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." >
+                          {form.watch("paymentMethod") || "Sélectionner..."}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Espèces</SelectItem>
+                        <SelectItem value="orange_money">Orange Money</SelectItem>
+                        <SelectItem value="mtn_momo">MTN Mobile Money</SelectItem>
+                        <SelectItem value="moov_money">Moov Money</SelectItem>
+                        <SelectItem value="wave">Wave</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.paymentMethod && (
+                      <p className="text-sm text-red-500 mt-1">
+                        {form.formState.errors.paymentMethod.message}
+                      </p>
+                    )}
+                  </div>
 
-          <div>
-            <Label htmlFor="description">Description (optionnel)</Label>
-            <Input
-              id="description"
-              {...form.register("description")}
-              placeholder="Description de la vente..."
-            />
-          </div>
+                  <div>
+                    <Label htmlFor="description">Description (optionnel)</Label>
+                    <Input
+                      id="description"
+                      {...form.register("description")}
+                      placeholder="Description de la vente..."
+                    />
+                  </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              className="flex-1"
-            >
-              Annuler
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="flex-1"
-            >
-              {createMutation.isPending ? "Ajout..." : "Ajouter"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpen(false)}
+                      className="flex-1"
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={createMutation.isPending}
+                      className="flex-1"
+                    >
+                      {createMutation.isPending ? "Ajout..." : "Ajouter"}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        {/* </DialogContent>
+      </Dialog> */}
+    </>
   );
 }
 
@@ -235,7 +254,15 @@ export default function Sales() {
     switch (method) {
       case "cash":
         return "Espèces";
-      case "mobile_money":
+      case "orange_money":
+        return "Orange Money";
+      case "mtn_momo":
+        return "MTN Mobile Money";
+      case "moov_money":
+        return "Moov Money";
+      case "wave":
+        return "Wave";
+      case "mobile_money": // Fallback for generic mobile_money if used in backend
         return "Mobile Money";
       default:
         return method;
@@ -246,6 +273,10 @@ export default function Sales() {
     switch (method) {
       case "cash":
         return "bg-success";
+      case "orange_money":
+      case "mtn_momo":
+      case "moov_money":
+      case "wave":
       case "mobile_money":
         return "bg-primary";
       default:
@@ -533,7 +564,8 @@ export default function Sales() {
                     )}
                   </div>
                   <div className="flex-shrink-0 ml-4">
-                    <AlertDialog>
+                    {/* COMMENTEZ AlertDialog */}
+                    {/* <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                           <Trash2 className="h-4 w-4" />
@@ -557,7 +589,15 @@ export default function Sales() {
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
-                    </AlertDialog>
+                    </AlertDialog> */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => { /* Logique de suppression temporaire si nécessaire */ console.log("Supprimer vente", sale.id); handleDeleteSale(sale.id); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}

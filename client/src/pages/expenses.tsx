@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertExpenseSchema } from "@shared/schema";
-import { authService } from "@/lib/auth";
+import authService from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/currency";
 import { z } from "zod";
@@ -21,14 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+// COMMENTEZ CES IMPORTS DE DIALOG
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@/components/ui/dialog";
+// COMMENTEZ CES IMPORTS D'ALERTDIALOG
+// import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash2, Receipt, Calendar, Download, TrendingDown } from "lucide-react";
 
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
@@ -167,105 +169,108 @@ function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    // DÉBUT DE LA CORRECTION : ENVELOPPEZ LE TOUT DANS UN FRAGMENT
+    <>
         {expense ? (
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
             <Edit className="h-4 w-4" />
           </Button>
         ) : (
-          <Button>
+          <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Ajouter une dépense
           </Button>
         )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {expense ? "Modifier la dépense" : "Ajouter une dépense"}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              {...form.register("description")}
-              placeholder="Description de la dépense"
-            />
-            {form.formState.errors.description && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.description.message}
-              </p>
-            )}
-          </div>
+          {/* AFFICHEZ LE FORMULAIRE DIRECTEMENT SI 'open' EST VRAI */}
+          {open && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                <h2 className="text-xl font-bold mb-4">{expense ? "Modifier la dépense" : "Ajouter une dépense"}</h2>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      {...form.register("description")}
+                      placeholder="Description de la dépense"
+                    />
+                    {form.formState.errors.description && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.description.message}
+                      </p>
+                    )}
+                  </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="amount">Montant (FCFA)</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              {...form.register("amount")}
-              placeholder="0.00"
-            />
-            {form.formState.errors.amount && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.amount.message}
-              </p>
-            )}
-          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Montant (FCFA)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...form.register("amount")}
+                      placeholder="0.00"
+                    />
+                    {form.formState.errors.amount && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.amount.message}
+                      </p>
+                    )}
+                  </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="category">Catégorie</Label>
-            <Select
-              value={form.watch("category")}
-              onValueChange={(value) => form.setValue("category", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                {expenseCategories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.category && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.category.message}
-              </p>
-            )}
-          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Catégorie</Label>
+                    <Select
+                      value={form.watch("category")}
+                      onValueChange={(value) => form.setValue("category", value)}
+                    >
+                      <SelectTrigger>
+                        {/* MODIFICATION ICI : Contenu explicite pour SelectValue */}
+                        <SelectValue>
+                          {form.watch("category") || "Sélectionner une catégorie"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {expenseCategories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.category && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.category.message}
+                      </p>
+                    )}
+                  </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="receiptUrl">URL du reçu (optionnel)</Label>
-            <Input
-              id="receiptUrl"
-              {...form.register("receiptUrl")}
-              placeholder="https://exemple.com/recu.jpg"
-            />
-          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="receiptUrl">URL du reçu (optionnel)</Label>
+                    <Input
+                      id="receiptUrl"
+                      {...form.register("receiptUrl")}
+                      placeholder="https://exemple.com/recu.jpg"
+                    />
+                  </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Enregistrement..." : expense ? "Modifier" : "Ajouter"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpen(false)}
+                    >
+                      Annuler
+                    </Button>
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? "Enregistrement..." : expense ? "Modifier" : "Ajouter"}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+    </> // FIN DE LA CORRECTION : FERMETURE DU FRAGMENT
   );
 }
 
@@ -277,7 +282,6 @@ export default function Expenses() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Calculate date ranges
   const getDateRange = () => {
     const now = new Date();
     switch (dateRange) {
@@ -344,15 +348,12 @@ export default function Expenses() {
     },
   });
 
-  // Filter expenses by category
   const filteredExpenses = expenses.filter((expense: any) => 
     selectedCategory === "all" || expense.category === selectedCategory
   );
 
-  // Calculate totals
   const totalExpenses = filteredExpenses.reduce((sum: number, expense: any) => sum + parseFloat(expense.amount), 0);
 
-  // Group expenses by category for summary
   const expensesByCategory = filteredExpenses.reduce((acc: any, expense: any) => {
     if (!acc[expense.category]) {
       acc[expense.category] = 0;
@@ -367,7 +368,6 @@ export default function Expenses() {
     import('jspdf').then(({ default: jsPDF }) => {
       const doc = new jsPDF();
       
-      // En-tête
       doc.setFontSize(20);
       doc.text('Rapport des Dépenses', 20, 20);
       
@@ -375,7 +375,6 @@ export default function Expenses() {
       doc.text(`Période: ${dateRange}`, 20, 35);
       doc.text(`Généré le: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: fr })}`, 20, 45);
       
-      // Tableau des dépenses
       const tableData = filteredExpenses.map((expense: any) => [
         format(new Date(expense.createdAt), "dd/MM/yyyy HH:mm", { locale: fr }),
         expense.description,
@@ -384,23 +383,19 @@ export default function Expenses() {
         expense.receiptUrl ? "Oui" : "Non"
       ]);
       
-      // En-têtes du tableau
       const headers = ["Date", "Description", "Montant", "Catégorie", "Reçu"];
       
       let yPos = 60;
       
-      // Dessiner les en-têtes
       doc.setFontSize(10);
       doc.setFont(undefined, 'bold');
       headers.forEach((header, i) => {
         doc.text(header, 20 + (i * 35), yPos);
       });
       
-      // Ligne sous les en-têtes
       doc.line(20, yPos + 2, 190, yPos + 2);
       yPos += 10;
       
-      // Données du tableau
       doc.setFont(undefined, 'normal');
       tableData.forEach((row, index) => {
         if (yPos > 270) {
@@ -416,13 +411,11 @@ export default function Expenses() {
         yPos += 8;
       });
       
-      // Total
       const total = filteredExpenses.reduce((sum: number, expense: any) => sum + parseFloat(expense.amount), 0);
       yPos += 10;
       doc.setFont(undefined, 'bold');
       doc.text(`Total: ${total.toFixed(0)} FCFA`, 20, yPos);
       
-      // Télécharger le PDF
       doc.save(`depenses-${dateRange}-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     });
   };
@@ -641,7 +634,8 @@ export default function Expenses() {
                   </div>
                   <div className="flex space-x-2">
                     <ExpenseForm expense={expense} />
-                    <AlertDialog>
+                    {/* COMMENTEZ AlertDialog */}
+                    {/* <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
                           size="sm"
@@ -670,7 +664,15 @@ export default function Expenses() {
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
-                    </AlertDialog>
+                    </AlertDialog> */}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={deleteMutation.isPending}
+                      onClick={() => { /* Logique de suppression temporaire si nécessaire */ console.log("Supprimer dépense", expense.id); deleteMutation.mutate(expense.id); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}

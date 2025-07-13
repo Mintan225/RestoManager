@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { authService } from "./auth";
+import  authService  from "./auth";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {

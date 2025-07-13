@@ -3,8 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { insertProductSchema } from "@shared/schema";
-// Removed apiRequest import - using native fetch instead
-import { authService } from "@/lib/auth";
+import authService from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
@@ -19,15 +18,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+// COMMENTEZ CES IMPORTS DE DIALOG
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
+
+interface Category {
+  id: number;
+  name: string;
+}
 
 const productFormSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
@@ -46,12 +51,24 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, onSuccess }: ProductFormProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // Gardez l'état 'open' pour la logique interne
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
+    queryFn: async () => {
+      // Simulation temporaire pour le développement
+      await new Promise(resolve => setTimeout(resolve, 500)); 
+      return [
+        { id: 1, name: "Boissons" },
+        { id: 2, name: "Plat principal" },
+        { id: 3, name: "Desserts" },
+        { id: 4, name: "Entrées" },
+      ] as Category[];
+    },
+    staleTime: Infinity,
+    cacheTime: Infinity,
   });
 
   const form = useForm<ProductFormData>({
@@ -170,117 +187,130 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
+  // Fonction utilitaire pour obtenir le nom de la catégorie
+  const getCategoryNameById = (id: string) => {
+    const foundCategory = categories.find(c => c.id.toString() === id);
+    return foundCategory ? foundCategory.name : "Sélectionner une catégorie";
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          {product ? "Modifier" : "Ajouter un produit"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {product ? "Modifier le produit" : "Ajouter un produit"}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom du produit</Label>
-            <Input
-              id="name"
-              {...form.register("name")}
-              placeholder="Nom du produit"
-            />
-            {form.formState.errors.name && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.name.message}
-              </p>
-            )}
-          </div>
+    // DÉBUT DE LA CORRECTION : ENVELOPPEZ LE TOUT DANS UN FRAGMENT
+    <>
+      <Button onClick={() => setOpen(true)}>
+        <Plus className="h-4 w-4 mr-2" />
+        {product ? "Modifier" : "Ajouter un produit"}
+      </Button>
+      {open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4">{product ? "Modifier le produit" : "Ajouter un produit"}</h2>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom du produit</Label>
+                <Input
+                  id="name"
+                  {...form.register("name")}
+                  placeholder="Nom du produit"
+                />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.name.message}
+                  </p>
+                )}
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              {...form.register("description")}
-              placeholder="Description du produit"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  {...form.register("description")}
+                  placeholder="Description du produit"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="price">Prix (FCFA)</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              {...form.register("price")}
-              placeholder="0.00"
-            />
-            {form.formState.errors.price && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.price.message}
-              </p>
-            )}
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">Prix (FCFA)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...form.register("price")}
+                  placeholder="0.00"
+                />
+                {form.formState.errors.price && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.price.message}
+                  </p>
+                )}
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="categoryId">Catégorie</Label>
-            <Select
-              value={form.watch("categoryId")}
-              onValueChange={(value) => form.setValue("categoryId", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category: any) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.categoryId && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.categoryId.message}
-              </p>
-            )}
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="categoryId">Catégorie</Label>
+                <Select
+                  value={form.watch("categoryId")}
+                  onValueChange={(value) => form.setValue("categoryId", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue>
+                      {getCategoryNameById(form.watch("categoryId"))}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingCategories ? (
+                      <SelectItem value="loading" disabled>Chargement des catégories...</SelectItem>
+                    ) : categories.length === 0 ? (
+                      <SelectItem value="no-categories" disabled>Aucune catégorie disponible.</SelectItem>
+                    ) : (
+                      categories.map((category: any) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.categoryId && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.categoryId.message}
+                  </p>
+                )}
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl">URL de l'image</Label>
-            <Input
-              id="imageUrl"
-              {...form.register("imageUrl")}
-              placeholder="https://exemple.com/image.jpg"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="imageUrl">URL de l'image</Label>
+                <Input
+                  id="imageUrl"
+                  {...form.register("imageUrl")}
+                  placeholder="https://exemple.com/image.jpg"
+                />
+              </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="available"
-              checked={form.watch("available")}
-              onCheckedChange={(checked) => form.setValue("available", checked)}
-            />
-            <Label htmlFor="available">Disponible</Label>
-          </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="available"
+                  checked={form.watch("available")}
+                  onCheckedChange={(checked) => form.setValue("available", checked)}
+                />
+                <Label htmlFor="available">Disponible</Label>
+              </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Enregistrement..." : product ? "Modifier" : "Ajouter"}
-            </Button>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Enregistrement..." : product ? "Modifier" : "Ajouter"}
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </> // FIN DE LA CORRECTION : FERMETURE DU FRAGMENT
   );
 }

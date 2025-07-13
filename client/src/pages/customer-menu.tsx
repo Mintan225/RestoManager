@@ -1,3 +1,4 @@
+// customer-menu.tsx
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
@@ -23,6 +24,7 @@ import {
   Smartphone,
   CheckCircle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CartItem {
   id: number;
@@ -31,6 +33,10 @@ interface CartItem {
   quantity: number;
   notes?: string;
 }
+
+const BASE_BUTTON_CLASSES = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+const DEFAULT_BUTTON_CLASSES = "bg-primary text-primary-foreground hover:bg-primary/90";
+const OUTLINE_BUTTON_CLASSES = "border border-input bg-background hover:bg-accent hover:text-accent-foreground";
 
 export default function CustomerMenu() {
   const [, params] = useRoute("/menu/:tableNumber");
@@ -71,15 +77,18 @@ export default function CustomerMenu() {
     },
     onSuccess: (data) => {
       setLastOrderId(data.id);
-      setShowOrderTracking(true); // Ouvrir automatiquement le suivi
+      setShowOrderTracking(true);
       toast({
         title: "Commande envoyée!",
         description: `Votre commande #${data.id} a été transmise. Suivez son évolution !`,
       });
-      setCart([]);
-      // NE PAS réinitialiser customerName et customerPhone pour le suivi
-      setOrderNotes("");
       setShowCart(false);
+      
+      setTimeout(() => {
+        setCart([]);
+        setOrderNotes("");
+      
+      }, 1500);
     },
     onError: (error: Error) => {
       toast({
@@ -90,6 +99,7 @@ export default function CustomerMenu() {
     },
   });
 
+  // --- EARLY RETURNS POUR LES CAS D'ERREUR OU DE CHARGEMENT INITIAUX (CEUX-CI SONT CORRECTS) ---
   if (!tableNumber) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -233,221 +243,10 @@ export default function CustomerMenu() {
     orderMutation.mutate(orderData);
   };
 
-  if (showCart) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b">
-          <div className="px-4 py-4">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="outline"
-                onClick={() => setShowCart(false)}
-              >
-                ← Retour au menu
-              </Button>
-              <div className="text-center">
-                <h1 className="text-lg font-bold">Votre commande</h1>
-                <p className="text-sm text-gray-600">Table {table.number}</p>
-              </div>
-              <div className="w-20"></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 max-w-2xl mx-auto space-y-6">
-          {/* Cart Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Articles commandés</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {cart.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                  <div className="flex-1">
-                    <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {formatCurrency(item.price)} × {item.quantity}
-                    </p>
-                    <div className="mt-2">
-                      <Input
-                        placeholder="Notes spéciales (optionnel)"
-                        value={item.notes || ""}
-                        onChange={(e) => updateCartItemNotes(item.id, e.target.value)}
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 ml-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => removeFromCart(item.id)}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-8 text-center">{item.quantity}</span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => addToCart({ id: item.id, name: item.name, price: item.price })}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <div className="pt-4 border-t">
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>Total:</span>
-                  <span>{formatCurrency(getTotalPrice())}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Customer Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Vos informations</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="customerName">
-                  <User className="h-4 w-4 inline mr-2" />
-                  Nom *
-                </Label>
-                <Input
-                  id="customerName"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Votre nom"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="customerPhone">
-                  <Phone className="h-4 w-4 inline mr-2" />
-                  Téléphone (optionnel)
-                </Label>
-                <Input
-                  id="customerPhone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="Votre numéro de téléphone"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="orderNotes">Notes pour la commande</Label>
-                <Textarea
-                  id="orderNotes"
-                  value={orderNotes}
-                  onChange={(e) => setOrderNotes(e.target.value)}
-                  placeholder="Instructions spéciales, allergies, etc."
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Payment Method */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Méthode de paiement</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Cash Payment */}
-                <Button
-                  variant={paymentMethod === "cash" ? "default" : "outline"}
-                  onClick={() => setPaymentMethod("cash")}
-                  className="w-full h-16 flex items-center justify-start px-6"
-                >
-                  <CreditCard className="h-6 w-6 mr-4" />
-                  <span className="text-lg">Paiement en espèces</span>
-                </Button>
-                
-                {/* Mobile Money Options */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-gray-700">Mobile Money</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant={paymentMethod === "orange_money" ? "default" : "outline"}
-                      onClick={() => setPaymentMethod("orange_money")}
-                      className="h-14 flex-col"
-                    >
-                      <Smartphone className="h-5 w-5 mb-1" />
-                      <span className="text-sm">Orange Money</span>
-                    </Button>
-                    <Button
-                      variant={paymentMethod === "mtn_momo" ? "default" : "outline"}
-                      onClick={() => setPaymentMethod("mtn_momo")}
-                      className="h-14 flex-col"
-                    >
-                      <Smartphone className="h-5 w-5 mb-1" />
-                      <span className="text-sm">MTN MoMo</span>
-                    </Button>
-                    <Button
-                      variant={paymentMethod === "moov_money" ? "default" : "outline"}
-                      onClick={() => setPaymentMethod("moov_money")}
-                      className="h-14 flex-col"
-                    >
-                      <Smartphone className="h-5 w-5 mb-1" />
-                      <span className="text-sm">Moov Money</span>
-                    </Button>
-                    <Button
-                      variant={paymentMethod === "wave" ? "default" : "outline"}
-                      onClick={() => setPaymentMethod("wave")}
-                      className="h-14 flex-col"
-                    >
-                      <Smartphone className="h-5 w-5 mb-1" />
-                      <span className="text-sm">Wave</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Payment Info */}
-              {paymentMethod === "cash" && (
-                <p className="text-sm text-gray-600 mt-4">
-                  Vous paierez en espèces à la livraison de votre commande.
-                </p>
-              )}
-              {paymentMethod !== "cash" && paymentMethod !== "mobile_money" && (
-                <p className="text-sm text-gray-600 mt-4">
-                  Le paiement sera traité via {
-                    paymentMethod === "orange_money" ? "Orange Money" :
-                    paymentMethod === "mtn_momo" ? "MTN Mobile Money" :
-                    paymentMethod === "moov_money" ? "Moov Money" :
-                    paymentMethod === "wave" ? "Wave" : "Mobile Money"
-                  }.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Submit Order */}
-          <Button
-            onClick={handleSubmitOrder}
-            disabled={orderMutation.isPending || cart.length === 0}
-            className="w-full h-12 text-lg"
-          >
-            {orderMutation.isPending ? (
-              "Envoi en cours..."
-            ) : (
-              <>
-                <CheckCircle className="h-5 w-5 mr-2" />
-                Confirmer la commande ({formatCurrency(getTotalPrice())})
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
+  // --- DÉBUT DE L'ARBRE DE RENDU UNIQUE ---
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Composant de suivi des commandes */}
+      {/* Composant de suivi des commandes - Reste toujours monté */}
       {showOrderTracking && (
         <OrderTracking
           tableId={parseInt(tableNumber)}
@@ -457,168 +256,411 @@ export default function CustomerMenu() {
         />
       )}
 
-      {/* Notifications */}
+      {/* Notifications - Restent toujours montées */}
       {notifications.map((notification) => (
         <OrderNotification
-          key={notification.notificationId || `${notification.id}-${notification.timestamp}`}
+          key={notification.notificationId ?? notification.id}
           order={notification}
           onClose={() => removeNotification(notification.notificationId)}
         />
       ))}
       
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3">
-                <UtensilsCrossed className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold">Notre Menu</h1>
-                <p className="text-sm text-gray-600">Table {table.number}</p>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              {lastOrderId && customerName && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowOrderTracking(true)}
-                  className="bg-blue-50 text-blue-600 border-blue-200"
+      {/* Utilisation de l'opérateur ternaire pour basculer entre le panier et le menu */}
+      {showCart ? (
+        // --- CONTENU DU PANIER ---
+        <div className="min-h-screen bg-gray-50">
+          {/* Header du panier */}
+          <div className="bg-white shadow-sm border-b">
+            <div className="px-4 py-4">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setShowCart(false)}
+                  className={cn(BASE_BUTTON_CLASSES, OUTLINE_BUTTON_CLASSES)}
                 >
-                  📋 Suivi
-                </Button>
-              )}
-              <Button
-                onClick={() => setShowCart(true)}
-                className="relative"
-                disabled={cart.length === 0}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Panier
-                {getTotalItems() > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-destructive text-white text-xs">
-                    {getTotalItems()}
-                  </Badge>
-                )}
-              </Button>
+                  ← Retour au menu
+                </button>
+                <div className="text-center">
+                  <h1 className="text-lg font-bold">Votre commande</h1>
+                  <p className="text-sm text-gray-600">Table {table.number}</p>
+                </div>
+                <div className="w-20"></div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="p-4 max-w-4xl mx-auto">
-        {/* Categories */}
-        {categories.length > 0 && (
-          <div className="mb-6">
-            <div className="flex space-x-2 overflow-x-auto pb-2">
-              <Button
-                variant={selectedCategory === null ? "default" : "outline"}
-                onClick={() => setSelectedCategory(null)}
-                className="whitespace-nowrap"
-              >
-                Tout voir
-              </Button>
-              {categories.map((category: any) => (
-                <Button
-                  key={category.id}
-                  variant={selectedCategory === category.id ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className="whitespace-nowrap"
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredProducts.map((product: any) => (
-            <Card key={product.id} className="overflow-hidden">
-              {product.imageUrl && (
-                <div className="h-48 bg-gray-100">
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-lg">{product.name}</h3>
-                  <span className="text-lg font-bold text-primary">
-                    {formatCurrency(product.price)}
-                  </span>
-                </div>
-                {product.description && (
-                  <p className="text-gray-600 text-sm mb-4">
-                    {product.description}
-                  </p>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {getCartItemQuantity(product.id) > 0 && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => removeFromCart(product.id)}
+          <div className="p-4 max-w-2xl mx-auto space-y-6">
+            {/* Cart Items */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Articles commandés</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <>
+                  {cart.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between py-3 border-b last:border-b-0">
+                      <div className="flex-1">
+                        <h3 className="font-medium">{item.name ?? 'Article inconnu'}</h3>
+                        <p className="text-sm text-gray-600">
+                          {(formatCurrency(item.price) ?? '0.00 XOF')} × {item.quantity ?? 0}
+                        </p>
+                        <div className="mt-2">
+                          <textarea
+                            placeholder="Notes spéciales (optionnel)"
+                            value={item.notes || ""}
+                            onChange={(e) => updateCartItemNotes(item.id, e.target.value)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.id)}
+                          className={cn(BASE_BUTTON_CLASSES, OUTLINE_BUTTON_CLASSES, "h-8 w-8 p-0")}
                         >
                           <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-8 text-center">
-                          {getCartItemQuantity(product.id)}
-                        </span>
-                      </>
-                    )}
-                    <Button
-                      size="sm"
-                      onClick={() => addToCart(product)}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {getCartItemQuantity(product.id) === 0 ? "Ajouter" : ""}
-                    </Button>
+                        </button>
+                        <span className="w-8 text-center">{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => addToCart({ id: item.id, name: item.name, price: item.price })}
+                          className={cn(BASE_BUTTON_CLASSES, OUTLINE_BUTTON_CLASSES, "h-8 w-8 p-0")}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-4 border-t">
+                    <div className="flex justify-between items-center text-lg font-bold">
+                      <span>Total:</span>
+                      <span>{formatCurrency(getTotalPrice())}</span>
+                    </div>
                   </div>
+                </>
+              </CardContent>
+            </Card>
+
+            {/* Customer Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Vos informations</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerName">
+                    <User className="h-4 w-4 inline mr-2" />
+                    Nom *
+                  </Label>
+                  <Input
+                    id="customerName"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Votre nom"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customerPhone">
+                    <Phone className="h-4 w-4 inline mr-2" />
+                    Téléphone (optionnel)
+                  </Label>
+                  <Input
+                    id="customerPhone"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Votre numéro de téléphone"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="orderNotes">Notes pour la commande</Label>
+                  <Textarea
+                    id="orderNotes"
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    placeholder="Instructions spéciales, allergies, etc."
+                  />
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
 
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <UtensilsCrossed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Aucun produit disponible
-            </h3>
-            <p className="text-gray-500">
-              {selectedCategory 
-                ? "Aucun produit dans cette catégorie."
-                : "Le menu n'est pas encore disponible."}
-            </p>
+            {/* Payment Method */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Méthode de paiement</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Cash Payment */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("cash")}
+                    className={cn(BASE_BUTTON_CLASSES, paymentMethod === "cash" ? DEFAULT_BUTTON_CLASSES : OUTLINE_BUTTON_CLASSES, "w-full h-16 flex items-center justify-start px-6")}
+                  >
+                    <CreditCard className="h-6 w-6 mr-4" />
+                    <span className="text-lg">Paiement en espèces</span>
+                  </button>
+                  
+                  {/* Mobile Money Options */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-700">Mobile Money</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("orange_money")}
+                        className={cn(BASE_BUTTON_CLASSES, paymentMethod === "orange_money" ? DEFAULT_BUTTON_CLASSES : OUTLINE_BUTTON_CLASSES, "h-14 flex-col")}
+                      >
+                        <Smartphone className="h-5 w-5 mb-1" />
+                        <span className="text-sm">Orange Money</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("mtn_momo")}
+                        className={cn(BASE_BUTTON_CLASSES, paymentMethod === "mtn_momo" ? DEFAULT_BUTTON_CLASSES : OUTLINE_BUTTON_CLASSES, "h-14 flex-col")}
+                      >
+                        <Smartphone className="h-5 w-5 mb-1" />
+                        <span className="text-sm">MTN MoMo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("moov_money")}
+                        className={cn(BASE_BUTTON_CLASSES, paymentMethod === "moov_money" ? DEFAULT_BUTTON_CLASSES : OUTLINE_BUTTON_CLASSES, "h-14 flex-col")}
+                      >
+                        <Smartphone className="h-5 w-5 mb-1" />
+                        <span className="text-sm">Moov Money</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("wave")}
+                        className={cn(BASE_BUTTON_CLASSES, paymentMethod === "wave" ? DEFAULT_BUTTON_CLASSES : OUTLINE_BUTTON_CLASSES, "h-14 flex-col")}
+                      >
+                        <Smartphone className="h-5 w-5 mb-1" />
+                        <span className="text-sm">Wave</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Payment Info */}
+                {paymentMethod === "cash" && (
+                  <p className="text-sm text-gray-600 mt-4">
+                    Vous paierez en espèces à la livraison de votre commande.
+                  </p>
+                )}
+                {paymentMethod !== "cash" && paymentMethod !== "mobile_money" && (
+                  <p className="text-sm text-gray-600 mt-4">
+                    Le paiement sera traité via {
+                      paymentMethod === "orange_money" ? "Orange Money" :
+                      paymentMethod === "mtn_momo" ? "MTN Mobile Money" :
+                      paymentMethod === "moov_money" ? "Moov Money" :
+                      paymentMethod === "wave" ? "Wave" : "Mobile Money"
+                    }.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Submit Order */}
+            <button
+              type="button"
+              onClick={handleSubmitOrder}
+              disabled={orderMutation.isPending || cart.length === 0}
+              className={cn(BASE_BUTTON_CLASSES, DEFAULT_BUTTON_CLASSES, "w-full h-12 text-lg")}
+            >
+              {orderMutation.isPending ? (
+                "Envoi en cours..."
+              ) : (
+                <>
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Confirmer la commande ({formatCurrency(getTotalPrice())})
+                </>
+              )}
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        // --- CONTENU DU MENU PRINCIPAL ---
+        <div className="min-h-screen bg-gray-50">
+          {/* Header du menu */}
+          <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+            <div className="px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3">
+                    <UtensilsCrossed className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-bold">Notre Menu</h1>
+                    <p className="text-sm text-gray-600">Table {table.number}</p>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  {lastOrderId && customerName && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowOrderTracking(true)}
+                      className="bg-blue-50 text-blue-600 border-blue-200"
+                    >
+                      📋 Suivi
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => setShowCart(true)}
+                    className="relative"
+                    disabled={cart.length === 0}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Panier
+                    {getTotalItems() > 0 && (
+                      <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-destructive text-white text-xs">
+                        {getTotalItems()}
+                      </Badge>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
 
-      {/* Fixed Cart Button for Mobile */}
-      {cart.length > 0 && (
-        <div className="fixed bottom-4 right-4 md:hidden">
-          <Button
-            onClick={() => setShowCart(true)}
-            className="relative h-12 w-12 rounded-full shadow-lg"
-          >
-            <ShoppingCart className="h-5 w-5" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-destructive text-white text-xs">
-              {getTotalItems()}
-            </Badge>
-          </Button>
+          <div className="p-4 max-w-4xl mx-auto">
+            {/* Categories */}
+            {categories.length > 0 && (
+              <div className="mb-6">
+                <div className="flex space-x-2 overflow-x-auto pb-2">
+                  <Button
+                    variant={selectedCategory === null ? "default" : "outline"}
+                    onClick={() => setSelectedCategory(null)}
+                    className="whitespace-nowrap"
+                  >
+                    Tout voir
+                  </Button>
+                  {categories.map((category: any) => (
+                    <Button
+                      key={category.id}
+                      variant={selectedCategory === category.id ? "default" : "outline"}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className="whitespace-nowrap"
+                    >
+                      {category.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Products Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredProducts.map((product: any) => {
+                const currentQuantity = getCartItemQuantity(product.id);
+                return (
+                  <Card key={product.id} className="overflow-hidden">
+                    {product.imageUrl && (
+                      <div className="h-48 bg-gray-100">
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-lg">{product.name}</h3>
+                        <span className="text-lg font-bold text-primary">
+                          {formatCurrency(product.price)}
+                        </span>
+                      </div>
+                      {product.description && (
+                        <p className="text-gray-600 text-sm mb-4">
+                          {product.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => removeFromCart(product.id)}
+                            className={cn(
+                              "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                              "h-8 w-8 p-0",
+                              currentQuantity === 0 ? "hidden" : ""
+                            )}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span
+                            className={cn(
+                              "w-8 text-center",
+                              currentQuantity === 0 ? "hidden" : ""
+                            )}
+                          >
+                            {currentQuantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => addToCart(product)}
+                            className={cn(
+                              "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90",
+                              "flex-shrink-0",
+                              currentQuantity > 0 ? "hidden" : ""
+                            )}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Ajouter
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addToCart(product)}
+                            className={cn(
+                              "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                              "h-8 w-8 p-0",
+                              currentQuantity === 0 ? "hidden" : ""
+                            )}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-12">
+                <UtensilsCrossed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Aucun produit disponible
+                </h3>
+                <p className="text-gray-500">
+                  {selectedCategory 
+                    ? "Aucun produit dans cette catégorie."
+                    : "Le menu n'est pas encore disponible."}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Fixed Cart Button for Mobile */}
+          {cart.length > 0 && (
+            <div className="fixed bottom-4 right-4 md:hidden">
+              <Button
+                onClick={() => setShowCart(true)}
+                className="relative h-12 w-12 rounded-full shadow-lg"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-destructive text-white text-xs">
+                  {getTotalItems()}
+                </Badge>
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

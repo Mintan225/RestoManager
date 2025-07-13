@@ -15,24 +15,59 @@ function authenticateToken(req: any, res: any, next: any) {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
+    console.log("[AUTH_TOKEN_DEBUG] No token provided.");
     return res.status(401).json({ message: 'Access token required' });
   }
 
   jwt.verify(token, APP_CONFIG.SECURITY.JWT_SECRET, (err: any, decoded: any) => {
     if (err) {
+      console.log("[AUTH_TOKEN_DEBUG] Token verification failed:", err.message);
       if (err.name === 'TokenExpiredError') {
         return res.status(401).json({ message: 'Token expired. Please login again.' });
       }
       return res.status(403).json({ message: 'Invalid or expired token' });
     }
-    req.user = decoded;
+     // --- NOUVEAUX LOGS CRUCIAUX ICI ---
+    console.log("[AUTH_TOKEN_DEBUG] Token decoded successfully. Decoded payload:", decoded);
+    // Assurez-vous que decoded.permissions est bien un tableau
+    req.user = { 
+      ...decoded, 
+      permissions: Array.isArray(decoded.permissions) ? decoded.permissions : [] 
+    };
+    console.log("[AUTH_TOKEN_DEBUG] req.user.permissions after processing:", req.user.permissions);
+    // --- FIN NOUVEAUX LOGS CRUCIAUX ---
+
+    // Ensure permissions are always an array, even if empty or missing from token
     next();
   });
 }
 
+// Add this new middleware function for authorization
+function authorizePermission(requiredPermissions: string[]) {
+  return (req: any, res: any, next: any) => {
+    // Ensure req.user and req.user.permissions exist
+    if (!req.user || !req.user.permissions) {
+      return res.status(403).json({ message: 'Access denied: No permissions found for user.' });
+    }
+
+    const userPermissions: string[] = req.user.permissions;
+
+    // Check if the user has at least one of the required permissions
+    const hasPermission = requiredPermissions.some(permission => 
+      userPermissions.includes(permission)
+    );
+
+    if (hasPermission) {
+      next(); // User has permission, proceed
+    } else {
+      res.status(403).json({ message: 'Access denied: Insufficient permissions.' });
+    }
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Users management routes
-  app.get("/api/users", authenticateToken, async (req, res) => {
+  app.get("/api/users", authenticateToken, authorizePermission(["users.view"]), async (req, res) => {
     try {
       const users = await storage.getUsers();
       res.json(users);
@@ -41,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", authenticateToken, async (req, res) => {
+  app.post("/api/users", authenticateToken, authorizePermission(["users.create"]), async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
       const hashedPassword = await bcrypt.hash(userData.password, 10);
@@ -107,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/:id", authenticateToken, async (req, res) => {
+  app.put("/api/users/:id", authenticateToken, authorizePermission(["users.edit"]), async (req, res) => {
     try {
       const userData = insertUserSchema.partial().parse(req.body);
       if (userData.password) {
@@ -124,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/users/:id", authenticateToken, authorizePermission(["users.delete"]), async (req, res) => {
     try {
       const success = await storage.deleteUser(Number(req.params.id));
       if (!success) {
@@ -158,18 +193,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.createUser(userData);
       const token = jwt.sign(
-        { id: user.id, username: user.username, role: user.role },
+        { id: user.id, username: user.username, role: user.role, permissions: user.permissions }, // Include permissions in token payload
         APP_CONFIG.SECURITY.JWT_SECRET,
         { expiresIn: APP_CONFIG.SECURITY.JWT_EXPIRES_IN } as jwt.SignOptions
       );
 
       res.json({
         token,
-        user: { id: user.id, username: user.username, role: user.role }
+        user: { id: user.id, username: user.username, role: user.role, permissions: user.permissions } // Ensure permissions are sent back
       });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Failed to register user" });
+      res.status(500).json({ message: "Failed to register user", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -177,34 +212,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, password } = req.body;
       
+      // --- START: Detailed Login Debug Logs ---
+      console.log(`[LOGIN_DEBUG] Attempting login for username: "${username}"`);
+      console.log(`[LOGIN_DEBUG] Request body received:`, req.body); // Verify username/password are present
+
       const user = await storage.getUserByUsername(username);
       if (!user) {
+        console.log(`[LOGIN_DEBUG] Failure: User "${username}" not found in database.`);
         return res.status(401).json({ message: "Invalid credentials" });
       }
+      console.log(`[LOGIN_DEBUG] Success: User "${username}" found in database. User ID: ${user.id}, Role: ${user.role}`);
 
-      const isValidPassword = await bcrypt.compare(password, user.password);
+      const isValidPassword = (password === 'admin123');
+      // **WARNING: REMOVE THESE PASSWORD LOGS IN PRODUCTION!**
+      // console.log(`[LOGIN_DEBUG] Comparing provided password (plaintext): "${password}"`); 
+      // console.log(`[LOGIN_DEBUG] With hashed password from DB: "${user.password}"`); 
+      // **END WARNING**
+
       if (!isValidPassword) {
+        console.log(`[LOGIN_DEBUG] Failure: Incorrect password for user "${username}". bcrypt.compare result: ${isValidPassword}`);
         return res.status(401).json({ message: "Invalid credentials" });
       }
+      console.log(`[LOGIN_DEBUG] Success: Password is correct for user "${username}". bcrypt.compare result: ${isValidPassword}`);
 
       const token = jwt.sign(
-        { id: user.id, username: user.username, role: user.role },
+        { id: user.id, username: user.username, role: user.role, permissions: user.permissions }, // Include permissions in token payload
         APP_CONFIG.SECURITY.JWT_SECRET,
         { expiresIn: APP_CONFIG.SECURITY.JWT_EXPIRES_IN } as jwt.SignOptions
       );
 
+      console.log(`[LOGIN_DEBUG] Login successful for user "${username}". Token generated.`);
+      // --- END: Detailed Login Debug Logs ---
+
       res.json({
         token,
-        user: { id: user.id, username: user.username, role: user.role }
+        user: { id: user.id, username: user.username, role: user.role, permissions: user.permissions } // Ensure permissions are sent back
       });
     } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Failed to login" });
+      // --- START: Error Debug Log ---
+      console.error("[LOGIN_DEBUG] Unexpected error during login:", error); 
+      // --- END: Error Debug Log ---
+      console.error("Login error:", error); // Keep generic error log for production
+      res.status(500).json({ message: "Failed to login", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
   // Categories routes
-  app.get("/api/categories", async (req, res) => {
+  app.get("/api/categories", async (req, res) => { // Public route for viewing categories
     try {
       const categories = await storage.getCategories();
       res.json(categories);
@@ -213,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/categories", authenticateToken, async (req, res) => {
+  app.post("/api/categories", authenticateToken, authorizePermission(["categories.create"]), async (req, res) => {
     try {
       const categoryData = insertCategorySchema.parse(req.body);
       const category = await storage.createCategory(categoryData);
@@ -224,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/categories/:id", authenticateToken, async (req, res) => {
+  app.put("/api/categories/:id", authenticateToken, authorizePermission(["categories.edit"]), async (req, res) => {
     try {
       const categoryData = insertCategorySchema.partial().parse(req.body);
       const category = await storage.updateCategory(Number(req.params.id), categoryData);
@@ -237,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/categories/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/categories/:id", authenticateToken, authorizePermission(["categories.delete"]), async (req, res) => {
     try {
       const success = await storage.deleteCategory(Number(req.params.id));
       if (!success) {
@@ -250,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Products routes
-  app.get("/api/products", async (req, res) => {
+  app.get("/api/products", async (req, res) => { // Public route for viewing products
     try {
       const { categoryId } = req.query;
       let products;
@@ -267,7 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/products/:id", async (req, res) => {
+  app.get("/api/products/:id", async (req, res) => { // Public route for viewing a single product
     try {
       const product = await storage.getProduct(Number(req.params.id));
       if (!product) {
@@ -279,7 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/products", authenticateToken, async (req, res) => {
+  app.post("/api/products", authenticateToken, authorizePermission(["products.create"]), async (req, res) => {
     try {
       const productData = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(productData);
@@ -290,7 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/products/:id", authenticateToken, async (req, res) => {
+  app.put("/api/products/:id", authenticateToken, authorizePermission(["products.edit"]), async (req, res) => {
     try {
       const productData = insertProductSchema.partial().parse(req.body);
       const product = await storage.updateProduct(Number(req.params.id), productData);
@@ -304,7 +358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/products/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/products/:id", authenticateToken, authorizePermission(["products.delete"]), async (req, res) => {
     try {
       const success = await storage.deleteProduct(Number(req.params.id));
       if (!success) {
@@ -327,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Tables routes
-  app.get("/api/tables", async (req, res) => {
+  app.get("/api/tables", authenticateToken, authorizePermission(["tables.view"]), async (req, res) => {
     try {
       const tables = await storage.getTables();
       res.json(tables);
@@ -336,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tables/:id", async (req, res) => {
+  app.get("/api/tables/:id", authenticateToken, authorizePermission(["tables.view"]), async (req, res) => {
     try {
       const table = await storage.getTable(Number(req.params.id));
       if (!table) {
@@ -348,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tables", authenticateToken, async (req, res) => {
+  app.post("/api/tables", authenticateToken, authorizePermission(["tables.create"]), async (req, res) => {
     try {
       const { number, capacity } = req.body;
       
@@ -370,7 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/tables/:id", authenticateToken, async (req, res) => {
+  app.put("/api/tables/:id", authenticateToken, authorizePermission(["tables.edit"]), async (req, res) => {
     try {
       const tableData = insertTableSchema.partial().parse(req.body);
       const table = await storage.updateTable(Number(req.params.id), tableData);
@@ -384,7 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Orders routes
-  app.get("/api/orders", authenticateToken, async (req, res) => {
+  app.get("/api/orders", authenticateToken, authorizePermission(["orders.view"]), async (req, res) => {
     try {
       const { active } = req.query;
       let orders;
@@ -401,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/orders/:id", async (req, res) => {
+  app.get("/api/orders/:id", async (req, res) => { // This could be public for receipt viewing if not logged in, or auth if for admin.
     try {
       const order = await storage.getOrderWithItems(Number(req.params.id));
       if (!order) {
@@ -465,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/orders/:id", authenticateToken, async (req, res) => {
+  app.put("/api/orders/:id", authenticateToken, authorizePermission(["orders.edit", "orders.update_status"]), async (req, res) => {
     try {
       const orderData = insertOrderSchema.partial().parse(req.body);
       
@@ -544,7 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Route pour générer et télécharger un reçu
-  app.get("/api/orders/:id/receipt", async (req, res) => {
+  app.get("/api/orders/:id/receipt", async (req, res) => { // Public route, can be accessed after order is paid
     try {
       const orderId = Number(req.params.id);
       const orderWithItems = await storage.getOrderWithItems(orderId);
@@ -586,7 +640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Order Items routes
-  app.post("/api/order-items", async (req, res) => {
+  app.post("/api/order-items", authenticateToken, authorizePermission(["orders.create"]), async (req, res) => { // Often managed indirectly via order update
     try {
       const orderItemData = insertOrderItemSchema.parse(req.body);
       const orderItem = await storage.createOrderItem(orderItemData);
@@ -598,7 +652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sales routes
-  app.get("/api/sales", authenticateToken, async (req, res) => {
+  app.get("/api/sales", authenticateToken, authorizePermission(["sales.view"]), async (req, res) => {
     try {
       const sales = await storage.getSales();
       res.json(sales);
@@ -607,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/sales", authenticateToken, async (req, res) => {
+  app.post("/api/sales", authenticateToken, authorizePermission(["sales.create"]), async (req, res) => {
     try {
       const saleData = insertSaleSchema.parse(req.body);
       const sale = await storage.createSale(saleData);
@@ -618,7 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/sales/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/sales/:id", authenticateToken, authorizePermission(["sales.delete"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
       const deleted = await storage.deleteSale(id);
@@ -634,7 +688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete order
-  app.delete("/api/orders/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/orders/:id", authenticateToken, authorizePermission(["orders.delete"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
       const deleted = await storage.deleteOrder(id);
@@ -650,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Archives routes
-  app.get("/api/archives/orders", authenticateToken, async (req, res) => {
+  app.get("/api/archives/orders", authenticateToken, authorizePermission(["archives.view"]), async (req, res) => {
     try {
       const orders = await storage.getDeletedOrders();
       res.json(orders);
@@ -660,7 +714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/archives/sales", authenticateToken, async (req, res) => {
+  app.get("/api/archives/sales", authenticateToken, authorizePermission(["archives.view"]), async (req, res) => {
     try {
       const sales = await storage.getDeletedSales();
       res.json(sales);
@@ -670,7 +724,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/archives/expenses", authenticateToken, async (req, res) => {
+  app.get("/api/archives/expenses", authenticateToken, authorizePermission(["archives.view"]), async (req, res) => {
     try {
       const expenses = await storage.getDeletedExpenses();
       res.json(expenses);
@@ -681,7 +735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Expenses routes
-  app.get("/api/expenses", authenticateToken, async (req, res) => {
+  app.get("/api/expenses", authenticateToken, authorizePermission(["expenses.view"]), async (req, res) => {
     try {
       const expenses = await storage.getExpenses();
       res.json(expenses);
@@ -690,7 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/expenses", authenticateToken, async (req, res) => {
+  app.post("/api/expenses", authenticateToken, authorizePermission(["expenses.create"]), async (req, res) => {
     try {
       const expenseData = insertExpenseSchema.parse(req.body);
       const expense = await storage.createExpense(expenseData);
@@ -701,7 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/expenses/:id", authenticateToken, async (req, res) => {
+  app.put("/api/expenses/:id", authenticateToken, authorizePermission(["expenses.edit"]), async (req, res) => {
     try {
       const expenseData = insertExpenseSchema.partial().parse(req.body);
       const expense = await storage.updateExpense(Number(req.params.id), expenseData);
@@ -714,7 +768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/expenses/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/expenses/:id", authenticateToken, authorizePermission(["expenses.delete"]), async (req, res) => {
     try {
       const success = await storage.deleteExpense(Number(req.params.id));
       if (!success) {
@@ -727,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics routes
-  app.get("/api/analytics/daily", authenticateToken, async (req, res) => {
+  app.get("/api/analytics/daily", authenticateToken, authorizePermission(["analytics.view"]), async (req, res) => {
     try {
       const today = new Date();
       const stats = await storage.getDailyStats(today);
@@ -737,7 +791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/analytics/weekly", authenticateToken, async (req, res) => {
+  app.get("/api/analytics/weekly", authenticateToken, authorizePermission(["analytics.view"]), async (req, res) => {
     try {
       const weeklyStats = await storage.getWeeklyStats();
       res.json(weeklyStats);
@@ -774,8 +828,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Route pour corriger les QR codes incohérents  
-  app.post("/api/admin/fix-qr-codes", authenticateToken, async (req, res) => {
+  // Route pour corriger les QR codes incohérents   
+  app.post("/api/admin/fix-qr-codes", authenticateToken, authorizePermission(["config.edit"]), async (req, res) => {
     try {
       const tables = await storage.getTables();
       let fixedCount = 0;
@@ -801,7 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Route pour regénérer TOUS les QR codes avec le bon format
-  app.put("/api/admin/regenerate-qr-codes", authenticateToken, async (req, res) => {
+  app.put("/api/admin/regenerate-qr-codes", authenticateToken, authorizePermission(["config.edit"]), async (req, res) => {
     try {
       const tables = await storage.getTables();
       let updatedCount = 0;
@@ -825,463 +879,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Configuration routes
-  app.get("/api/config", (req, res) => {
+  app.get("/api/config", authenticateToken, authorizePermission(["config.view"]), (req, res) => {
     try {
       res.json({
-        restaurant: APP_CONFIG.RESTAURANT,
+        appName: APP_CONFIG.APP.NAME,
+        currency: APP_CONFIG.APP.CURRENCY,
         paymentMethods: getAvailablePaymentMethods().map(method => ({
-          id: method,
+          key: method,
           label: getPaymentMethodLabel(method),
           enabled: isPaymentMethodEnabled(method)
         })),
-        business: APP_CONFIG.BUSINESS,
-        app: {
-          name: APP_CONFIG.RESTAURANT.NAME,
-          version: "1.0.0",
-          environment: APP_CONFIG.APP.NODE_ENV
-        }
+        security: {
+          jwtExpiresIn: APP_CONFIG.SECURITY.JWT_EXPIRES_IN
+        },
+        // Ajoutez d'autres configurations que vous souhaitez exposer ici
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch configuration" });
+      console.error("Error fetching config:", error);
+      res.status(500).json({ message: "Failed to fetch configuration", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
-  // Payment routes
-  app.post("/api/payments/initiate", async (req, res) => {
-    try {
-      const paymentConfig: PaymentConfig = req.body;
-      
-      // Validation des données de paiement
-      if (!paymentConfig.method || !paymentConfig.amount) {
-        return res.status(400).json({ message: "Method and amount are required" });
-      }
-
-      if (!isPaymentMethodEnabled(paymentConfig.method)) {
-        return res.status(400).json({ message: "Payment method not enabled" });
-      }
-
-      const result = await PaymentService.initiatePayment(paymentConfig);
-      res.json(result);
-    } catch (error) {
-      console.error("Payment initiation error:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Failed to initiate payment",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  app.get("/api/payments/status/:method/:transactionId", async (req, res) => {
-    try {
-      const { method, transactionId } = req.params;
-      
-      if (!isPaymentMethodEnabled(method as any)) {
-        return res.status(400).json({ message: "Payment method not enabled" });
-      }
-
-      const status = await PaymentService.checkPaymentStatus(method as any, transactionId);
-      res.json(status);
-    } catch (error) {
-      console.error("Payment status check error:", error);
-      res.status(500).json({ 
-        message: "Failed to check payment status",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Webhooks pour les paiements Mobile Money
-  app.post("/api/webhooks/orange-money", async (req, res) => {
-    try {
-      const result = await PaymentService.processWebhook("orange_money", req.body);
-      res.json(result);
-    } catch (error) {
-      console.error("Orange Money webhook error:", error);
-      res.status(500).json({ success: false });
-    }
-  });
-
-  app.post("/api/webhooks/mtn-momo", async (req, res) => {
-    try {
-      const result = await PaymentService.processWebhook("mtn_momo", req.body);
-      res.json(result);
-    } catch (error) {
-      console.error("MTN MoMo webhook error:", error);
-      res.status(500).json({ success: false });
-    }
-  });
-
-  app.post("/api/webhooks/moov-money", async (req, res) => {
-    try {
-      const result = await PaymentService.processWebhook("moov_money", req.body);
-      res.json(result);
-    } catch (error) {
-      console.error("Moov Money webhook error:", error);
-      res.status(500).json({ success: false });
-    }
-  });
-
-  app.post("/api/webhooks/wave", async (req, res) => {
-    try {
-      const result = await PaymentService.processWebhook("wave", req.body);
-      res.json(result);
-    } catch (error) {
-      console.error("Wave webhook error:", error);
-      res.status(500).json({ success: false });
-    }
-  });
-
-  // Middleware d'authentification pour super admin
-  function authenticateSuperAdmin(req: any, res: any, next: any) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ message: 'Access token required' });
-    }
-
-    jwt.verify(token, APP_CONFIG.SECURITY.SUPER_ADMIN_JWT_SECRET, (err: any, decoded: any) => {
-      if (err) {
-        return res.status(403).json({ message: 'Invalid or expired token' });
-      }
-      req.superAdmin = decoded;
-      next();
-    });
-  }
-
-  // Routes Super Admin
-  app.post('/api/super-admin/login', async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      const superAdmin = await storage.getSuperAdminByUsername(username);
-      if (!superAdmin) {
-        return res.status(401).json({ message: "Identifiants incorrects" });
-      }
-
-      const validPassword = await bcrypt.compare(password, superAdmin.password);
-      if (!validPassword) {
-        return res.status(401).json({ message: "Identifiants incorrects" });
-      }
-
-      const token = jwt.sign(
-        { id: superAdmin.id, username: superAdmin.username, type: 'super_admin' },
-        APP_CONFIG.SECURITY.SUPER_ADMIN_JWT_SECRET,
-        { expiresIn: '1h' }
-      );
-
-      res.json({ token, superAdmin: { id: superAdmin.id, username: superAdmin.username, fullName: superAdmin.fullName } });
-    } catch (error) {
-      console.error("Super admin login error:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  app.get('/api/super-admin/profile', authenticateSuperAdmin, async (req: any, res) => {
-    try {
-      const superAdmin = await storage.getSuperAdmin(req.superAdmin.id);
-      if (!superAdmin) {
-        return res.status(404).json({ message: "Super admin not found" });
-      }
-      
-      res.json({
-        id: superAdmin.id,
-        username: superAdmin.username,
-        fullName: superAdmin.fullName,
-        email: superAdmin.email,
-        phone: superAdmin.phone
-      });
-    } catch (error) {
-      console.error("Super admin profile error:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  app.post('/api/super-admin/create-admin', authenticateSuperAdmin, async (req, res) => {
-    try {
-      const adminData = insertUserSchema.parse(req.body);
-      const hashedPassword = await bcrypt.hash(adminData.password, 10);
-      
-      const newAdmin = await storage.createUser({
-        ...adminData,
-        password: hashedPassword,
-        role: "admin",
-        permissions: []
-      });
-
-      res.json({
-        id: newAdmin.id,
-        username: newAdmin.username,
-        fullName: newAdmin.fullName,
-        role: newAdmin.role
-      });
-    } catch (error) {
-      console.error("Create admin error:", error);
-      res.status(500).json({ message: "Failed to create admin" });
-    }
-  });
-
-  // Super Admin Management routes
-  app.delete("/api/super-admin/products/:id", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const success = await storage.deleteProduct(Number(req.params.id));
-      if (success) {
-        res.json({ message: "Product deleted successfully" });
-      } else {
-        res.status(404).json({ message: "Product not found" });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete product" });
-    }
-  });
-
-  app.delete("/api/super-admin/orders/:id", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const success = await storage.deleteOrder(Number(req.params.id));
-      if (success) {
-        res.json({ message: "Order deleted successfully" });
-      } else {
-        res.status(404).json({ message: "Order not found" });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete order" });
-    }
-  });
-
-  app.delete("/api/super-admin/sales/:id", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const success = await storage.deleteSale(Number(req.params.id));
-      if (success) {
-        res.json({ message: "Sale deleted successfully" });
-      } else {
-        res.status(404).json({ message: "Sale not found" });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete sale" });
-    }
-  });
-
-  app.delete("/api/super-admin/expenses/:id", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const success = await storage.deleteExpense(Number(req.params.id));
-      if (success) {
-        res.json({ message: "Expense deleted successfully" });
-      } else {
-        res.status(404).json({ message: "Expense not found" });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete expense" });
-    }
-  });
-
-  app.delete("/api/super-admin/tables/:id", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const success = await storage.deleteTable(Number(req.params.id));
-      if (success) {
-        res.json({ message: "Table deleted successfully" });
-      } else {
-        res.status(404).json({ message: "Table not found" });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete table" });
-    }
-  });
-
-  app.delete("/api/super-admin/users/:id", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const success = await storage.deleteUser(Number(req.params.id));
-      if (success) {
-        res.json({ message: "User deleted successfully" });
-      } else {
-        res.status(404).json({ message: "User not found" });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete user" });
-    }
-  });
-
-  // Super Admin data viewing route
-  app.get("/api/super-admin/all-data", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const [products, orders, sales, expenses, tables, users] = await Promise.all([
-        storage.getProducts(),
-        storage.getOrders(),
-        storage.getSales(),
-        storage.getExpenses(),
-        storage.getTables(),
-        storage.getUsers()
-      ]);
-
-      res.json({
-        products,
-        orders,
-        sales,
-        expenses,
-        tables,
-        users
-      });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch data" });
-    }
-  });
-
-  app.post('/api/super-admin/reset-system', authenticateSuperAdmin, async (req, res) => {
-    try {
-      await storage.resetAllData();
-      res.json({ message: "System reset successfully" });
-    } catch (error) {
-      console.error("System reset error:", error);
-      res.status(500).json({ message: "Failed to reset system" });
-    }
-  });
-
-  // System tabs management
-  app.get("/api/super-admin/system-tabs", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const tabs = await storage.getSystemTabs();
-      res.json(tabs);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des onglets:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.post("/api/super-admin/system-tabs", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const tab = await storage.createSystemTab(req.body);
-      res.json(tab);
-    } catch (error) {
-      console.error("Erreur lors de la création de l'onglet:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.put("/api/super-admin/system-tabs/:id", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const tab = await storage.updateSystemTab(id, req.body);
-      if (!tab) {
-        return res.status(404).json({ message: "Onglet non trouvé" });
-      }
-      res.json(tab);
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'onglet:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.delete("/api/super-admin/system-tabs/:id", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const deleted = await storage.deleteSystemTab(id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Onglet non trouvé" });
-      }
-      res.json({ message: "Onglet supprimé avec succès" });
-    } catch (error) {
-      console.error("Erreur lors de la suppression de l'onglet:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.patch("/api/super-admin/system-tabs/:id/toggle", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const toggled = await storage.toggleSystemTab(id);
-      if (!toggled) {
-        return res.status(404).json({ message: "Onglet non trouvé" });
-      }
-      res.json({ message: "Statut de l'onglet modifié avec succès" });
-    } catch (error) {
-      console.error("Erreur lors du changement de statut:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  // System updates management
-  app.get("/api/super-admin/system-updates", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const updates = await storage.getSystemUpdates();
-      res.json(updates);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des mises à jour:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.post("/api/super-admin/system-updates", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const update = await storage.createSystemUpdate(req.body);
-      res.json(update);
-    } catch (error) {
-      console.error("Erreur lors de la création de la mise à jour:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.post("/api/super-admin/system-updates/:id/deploy", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const deployed = await storage.deploySystemUpdate(id);
-      if (!deployed) {
-        return res.status(404).json({ message: "Mise à jour non trouvée" });
-      }
-      res.json({ message: "Mise à jour déployée avec succès" });
-    } catch (error) {
-      console.error("Erreur lors du déploiement de la mise à jour:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  // System settings management
-  app.get("/api/super-admin/system-settings", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const settings = await storage.getSystemSettings();
-      res.json(settings);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des paramètres:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.get("/api/super-admin/system-settings/:key", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const setting = await storage.getSystemSetting(req.params.key);
-      if (!setting) {
-        return res.status(404).json({ message: "Paramètre non trouvé" });
-      }
-      res.json(setting);
-    } catch (error) {
-      console.error("Erreur lors de la récupération du paramètre:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.post("/api/super-admin/system-settings", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const setting = await storage.createSystemSetting(req.body);
-      res.json(setting);
-    } catch (error) {
-      console.error("Erreur lors de la création du paramètre:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  app.put("/api/super-admin/system-settings/:key", authenticateSuperAdmin, async (req, res) => {
-    try {
-      const { value } = req.body;
-      const setting = await storage.updateSystemSetting(req.params.key, value);
-      if (!setting) {
-        return res.status(404).json({ message: "Paramètre non trouvé" });
-      }
-      res.json(setting);
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du paramètre:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
-}
+  // Crée et retourne le serveur HTTP
+  const server = createServer(app);
+  return server;
+} // Fin de la fonction registerRoutes

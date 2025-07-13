@@ -9,13 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+// COMMENTEZ CES IMPORTS DE DIALOG
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -23,17 +24,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+// COMMENTEZ CES IMPORTS D'ALERTDIALOG
+// import {
+//   AlertDialog,
+//   AlertDialogAction,
+//   AlertDialogCancel,
+//   AlertDialogContent,
+//   AlertDialogDescription,
+//   AlertDialogFooter,
+//   AlertDialogHeader,
+//   AlertDialogTitle,
+//   AlertDialogTrigger,
+// } from "@/components/ui/alert-dialog";
 import {
   Users,
   Plus,
@@ -45,7 +47,7 @@ import {
   UserX,
   Settings,
 } from "lucide-react";
-// Removed apiRequest import - using native fetch instead
+import authService from "@/lib/auth";
 import { DEFAULT_PERMISSIONS, getRoleDisplayName, getPermissionDisplayName, type UserRole, type Permission } from "@shared/permissions";
 
 const userFormSchema = z.object({
@@ -97,7 +99,10 @@ function UserForm({ user, onSuccess }: UserFormProps) {
       };
       const response = await fetch("/api/users", {
         method: "POST",
-        headers: authService.getAuthHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          ...authService.getAuthHeaders(),
+        },
         body: JSON.stringify(userData),
       });
 
@@ -137,7 +142,10 @@ function UserForm({ user, onSuccess }: UserFormProps) {
       };
       const response = await fetch(`/api/users/${user.id}`, {
         method: "PUT",
-        headers: authService.getAuthHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          ...authService.getAuthHeaders(),
+        },
         body: JSON.stringify(userData),
       });
 
@@ -198,176 +206,188 @@ function UserForm({ user, onSuccess }: UserFormProps) {
     }
   };
 
+  const getRoleName = (roleValue: string) => {
+    switch (roleValue) {
+      case "employee": return "Employé";
+      case "cashier": return "Caissier";
+      case "manager": return "Manager";
+      case "admin": return "Administrateur";
+      default: return "Sélectionner un rôle";
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          {user ? <Edit className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-          {user ? "Modifier" : "Nouvel utilisateur"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {user ? "Modifier l'utilisateur" : "Créer un nouvel utilisateur"}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Nom d'utilisateur *</Label>
-              <Input
-                id="username"
-                {...form.register("username")}
-                placeholder="nom_utilisateur"
-              />
-              {form.formState.errors.username && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.username.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Nom complet *</Label>
-              <Input
-                id="fullName"
-                {...form.register("fullName")}
-                placeholder="Prénom Nom"
-              />
-              {form.formState.errors.fullName && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.fullName.message}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">
-              {user ? "Nouveau mot de passe (laisser vide pour ne pas changer)" : "Mot de passe *"}
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              {...form.register("password")}
-              placeholder="••••••••"
-            />
-            {form.formState.errors.password && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.password.message}
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                {...form.register("email")}
-                placeholder="email@exemple.com"
-              />
-              {form.formState.errors.email && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
-              <Input
-                id="phone"
-                {...form.register("phone")}
-                placeholder="+xxx xx xx xx xx"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Rôle *</Label>
-            <Select
-              value={selectedRole}
-              onValueChange={(value) => {
-                form.setValue("role", value as UserRole);
-                if (!customPermissions) {
-                  form.setValue("permissions", DEFAULT_PERMISSIONS[value as UserRole]);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="employee">Employé</SelectItem>
-                <SelectItem value="cashier">Caissier</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Administrateur</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setCustomPermissions(!customPermissions);
-                  if (!customPermissions) {
-                    form.setValue("permissions", DEFAULT_PERMISSIONS[selectedRole]);
-                  }
-                }}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                {customPermissions ? "Utiliser permissions par défaut" : "Personnaliser les permissions"}
-              </Button>
-            </div>
-
-            {customPermissions && (
-              <div className="space-y-3 p-4 border rounded-lg">
-                <Label>Permissions personnalisées</Label>
-                <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                  {availablePermissions.map((permission) => (
-                    <label
-                      key={permission}
-                      className="flex items-center space-x-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedPermissions?.includes(permission) || false}
-                        onChange={() => togglePermission(permission)}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{getPermissionDisplayName(permission)}</span>
-                    </label>
-                  ))}
+    // DÉBUT DE LA CORRECTION : ENVELOPPEZ LE TOUT DANS UN FRAGMENT
+    <>
+      <Button onClick={() => setOpen(true)}>
+        {user ? <Edit className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+        {user ? "Modifier" : "Nouvel utilisateur"}
+      </Button>
+      {open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{user ? "Modifier l'utilisateur" : "Créer un nouvel utilisateur"}</h2>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Nom d'utilisateur *</Label>
+                  <Input
+                    id="username"
+                    {...form.register("username")}
+                    placeholder="nom_utilisateur"
+                  />
+                  {form.formState.errors.username && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.username.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Nom complet *</Label>
+                  <Input
+                    id="fullName"
+                    {...form.register("fullName")}
+                    placeholder="Prénom Nom"
+                  />
+                  {form.formState.errors.fullName && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.fullName.message}
+                    </p>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              className="flex-1"
-            >
-              Annuler
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1"
-            >
-              {isLoading ? "En cours..." : user ? "Modifier" : "Créer"}
-            </Button>
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  {user ? "Nouveau mot de passe (laisser vide pour ne pas changer)" : "Mot de passe *"}
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  {...form.register("password")}
+                  placeholder="••••••••"
+                />
+                {form.formState.errors.password && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    {...form.register("email")}
+                    placeholder="email@exemple.com"
+                  />
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <Input
+                    id="phone"
+                    {...form.register("phone")}
+                    placeholder="+xxx xx xx xx xx"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Rôle *</Label>
+                <Select
+                  value={selectedRole}
+                  onValueChange={(value) => {
+                    form.setValue("role", value as UserRole);
+                    if (!customPermissions) {
+                      form.setValue("permissions", DEFAULT_PERMISSIONS[value as UserRole]);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    {/* MODIFICATION ICI : Contenu explicite pour SelectValue */}
+                    <SelectValue>
+                      {getRoleName(selectedRole)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employé</SelectItem>
+                    <SelectItem value="cashier">Caissier</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="admin">Administrateur</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCustomPermissions(!customPermissions);
+                      if (!customPermissions) {
+                        form.setValue("permissions", DEFAULT_PERMISSIONS[selectedRole]);
+                      }
+                    }}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    {customPermissions ? "Utiliser permissions par défaut" : "Personnaliser les permissions"}
+                  </Button>
+                </div>
+
+                {customPermissions && (
+                  <div className="space-y-3 p-4 border rounded-lg">
+                    <Label>Permissions personnalisées</Label>
+                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                      {availablePermissions.map((permission) => (
+                        <label
+                          key={permission}
+                          className="flex items-center space-x-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPermissions?.includes(permission) || false}
+                            onChange={() => togglePermission(permission)}
+                            className="rounded"
+                          />
+                          <span className="text-sm">{getPermissionDisplayName(permission)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1"
+                >
+                  {isLoading ? "En cours..." : user ? "Modifier" : "Créer"}
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </> // FIN DE LA CORRECTION : FERMETURE DU FRAGMENT
   );
 }
 
@@ -379,13 +399,28 @@ function UsersPage() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["/api/users"],
+    queryFn: async () => {
+      const headers = authService.getAuthHeaders();
+      const response = await fetch("/api/users", {
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch users");
+      }
+      return response.json();
+    },
   });
 
   const toggleUserStatusMutation = useMutation({
     mutationFn: async ({ userId, isActive }: { userId: number; isActive: boolean }) => {
       const response = await fetch(`/api/users/${userId}`, {
         method: "PUT",
-        headers: authService.getAuthHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          ...authService.getAuthHeaders(),
+        },
         body: JSON.stringify({ isActive }),
       });
 
@@ -443,13 +478,13 @@ function UsersPage() {
   });
 
   const filteredUsers = users.filter((user: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesRole = filterRole === "all" || user.role === filterRole;
-    
+
     return matchesSearch && matchesRole;
   });
 
@@ -495,7 +530,9 @@ function UsersPage() {
             </div>
             <Select value={filterRole} onValueChange={setFilterRole}>
               <SelectTrigger className="w-48">
-                <SelectValue />
+                <SelectValue>
+                  {getRoleDisplayName(filterRole as UserRole)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les rôles</SelectItem>
@@ -549,7 +586,7 @@ function UsersPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Button
                       size="sm"
@@ -568,10 +605,11 @@ function UsersPage() {
                         </>
                       )}
                     </Button>
-                    
+
                     <UserForm user={user} />
-                    
-                    <AlertDialog>
+
+                    {/* COMMENTEZ AlertDialog */}
+                    {/* <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="destructive">
                           <Trash2 className="h-4 w-4" />
@@ -595,10 +633,17 @@ function UsersPage() {
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
-                    </AlertDialog>
+                    </AlertDialog> */}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => { /* Logique de suppression temporaire si nécessaire */ console.log("Supprimer utilisateur", user.id); handleDeleteUser(user.id); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                
+
                 {user.permissions && user.permissions.length > 0 && (
                   <div className="mt-3 pt-3 border-t">
                     <p className="text-sm font-medium text-gray-700 mb-2">Permissions :</p>
@@ -619,7 +664,7 @@ function UsersPage() {
               </CardContent>
             </Card>
           ))}
-          
+
           {filteredUsers.length === 0 && (
             <Card>
               <CardContent className="p-8 text-center">

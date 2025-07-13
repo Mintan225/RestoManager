@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { authService } from "@/lib/auth";
+import  authService  from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { generateTableQRData } from "@/lib/qr-utils";
 import { Plus, Download, RefreshCw } from "lucide-react";

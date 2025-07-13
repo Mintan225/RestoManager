@@ -1,8 +1,10 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createDefaultSuperAdmin } from "./super-admin-init";
 import { storage } from "./storage";
+import { DEFAULT_PERMISSIONS } from "@shared/permissions";
 
 const app = express();
 app.use(express.json());
@@ -47,7 +49,8 @@ async function createDefaultAdmin() {
       await storage.createUser({
         username: "admin",
         password: "admin123", // Will be hashed by storage
-        role: "admin"
+        role: "admin",
+        permissions: DEFAULT_PERMISSIONS.admin
       });
       log("✓ Default admin user created: admin / admin123");
     }
@@ -103,11 +106,7 @@ async function initializeSystemSettings() {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+server.listen(port, '0.0.0.0', () => {
+  log(`serving on port ${port}`);
+});
 })();

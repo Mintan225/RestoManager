@@ -18,6 +18,8 @@ import {
   X,
   TestTube
 } from "lucide-react";
+// Importation du service d'authentification manquant
+import authService from "@/lib/auth"; 
 
 interface ConfigData {
   restaurant: {
@@ -52,7 +54,10 @@ export default function Config() {
   const { data: config, isLoading } = useQuery<ConfigData>({
     queryKey: ["/api/config"],
     queryFn: async () => {
-      const response = await fetch("/api/config");
+      // AJOUT DES EN-TÊTES D'AUTHENTIFICATION ICI
+      const response = await fetch("/api/config", {
+        headers: authService.getAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch configuration");
       }
@@ -67,6 +72,7 @@ export default function Config() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...authService.getAuthHeaders(), // AJOUT DES EN-TÊTES D'AUTHENTIFICATION ICI AUSSI
         },
         body: JSON.stringify({
           method: method,

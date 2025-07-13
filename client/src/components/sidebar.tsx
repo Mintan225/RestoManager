@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { authService } from "@/lib/auth";
+import  authService  from "@/lib/auth";
 import { useNewOrdersCount } from "@/hooks/useNewOrdersCount";
 import {
   LayoutDashboard,

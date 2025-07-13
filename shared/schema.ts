@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, jsonb } from "drizzle-orm/pg-core";
+import { sql } from 'drizzle-orm'; // Cette ligne est correcte et nécessaire pour sql`'[]'::jsonb`
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -11,7 +12,7 @@ export const users = pgTable("users", {
   email: text("email"),
   phone: text("phone"),
   role: text("role").notNull().default("employee"),
-  permissions: text("permissions").array().notNull().default("{}"),
+  permissions: jsonb("permissions").$type<string[]>().notNull().default(sql`'[]'::jsonb`), // Stocke un tableau JSON vide par défaut
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => users.id),

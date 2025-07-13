@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { authService } from "@/lib/auth";
+import  authService  from "@/lib/auth";
 import { User, Settings as SettingsIcon, Shield, Database, Bell } from "lucide-react";
 
 export default function Settings() {
