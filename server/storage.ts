@@ -122,7 +122,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-  const result = await db.select({ // <-- Modifier ici pour sélectionner explicitement les colonnes
+  const result = await db.select({
       id: users.id,
       username: users.username,
       password: users.password,
@@ -130,7 +130,7 @@ export class DatabaseStorage implements IStorage {
       email: users.email,
       phone: users.phone,
       role: users.role,
-      permissions: users.permissions, // <-- C'EST LA LIGNE CLÉ À AJOUTER/CONFIRMER
+      permissions: users.permissions,
       isActive: users.isActive,
       createdAt: users.createdAt,
       createdBy: users.createdBy,
