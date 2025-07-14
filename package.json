@@ -12,7 +12,6 @@
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push:pg"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
