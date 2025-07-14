@@ -78,7 +78,7 @@ async function initializeSystemSettings() {
   // --- Run migrations at startup ---
   try {
     console.log("🏗️ Running database migrations (push:pg)...");
-    execSync("npx drizzle-kit push:pg", { stdio: "inherit" });
+    execSync("npx drizzle-kit push", { stdio: "inherit" });
     console.log("✅ Migrations applied.");
   } catch (e) {
     console.error("🚨 Migration failed:", e);
