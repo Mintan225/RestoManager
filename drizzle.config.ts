@@ -3,7 +3,7 @@ import type { Config } from "drizzle-kit";
 
 // Drizzle configuration for PostgreSQL on Render with SSL
 const config: Config = {
-  schema: ["./server/schema.ts"],    // chemin vers ton schéma Drizzle
+  schema: ["./src/shared/schema.ts"],    // chemin vers ton schéma Drizzle
   dialect: "postgresql",                       // driver PostgreSQL
   dbCredentials: {
     connectionString: process.env.DATABASE_URL,
