@@ -1,18 +1,16 @@
-import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
+import type { Config } from "drizzle-kit";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
-}
-
-export default defineConfig({
-  out: "./drizzle",
-  schema: "./shared/schema.ts",
-  dialect: "postgresql",
+// Drizzle configuration for PostgreSQL on Render with SSL
+const config: Config = {
+  schema: ["./server/schema.ts"],    // chemin vers ton schéma Drizzle
+  driver: "pg",                       // driver PostgreSQL
   dbCredentials: {
-    url: process.env.DATABASE_URL,
-    ssl: true,
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false,        // accepte le certificat auto-signé de Render
+    },
   },
-  verbose: true,
-  strict: true,
-});
+};
+
+export default defineConfig(config);
