@@ -12,7 +12,7 @@
     "build": "npx vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "db:migrate": "drizzle-kit migrate --verbose",
+    "db:migrate": "ts-node drizzle.config.ts drizzle-kit migrate",
     "db:seed": "ts-node server/seed.ts"
   },
   "dependencies": {
