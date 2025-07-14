@@ -1,7 +1,7 @@
 // server/seed.ts (ou src/db/seed.ts)
 
 // Ajustez ces chemins pour qu'ils correspondent à votre projet
-import { db } from './index'; // Exemple: si votre instance 'db' est dans server/index.ts ou src/db/index.ts
+import { db } from './storage'; // Exemple: si votre instance 'db' est dans server/index.ts ou src/db/index.ts
 import { categories, users, systemSettings } from '../shared/schema'; // Exemple: si votre schéma est dans src/shared/schema.ts
 import { eq } from 'drizzle-orm'; // Nécessaire pour les requêtes de recherche (findFirst)
 // Si vous utilisez bcrypt pour le hachage des mots de passe
