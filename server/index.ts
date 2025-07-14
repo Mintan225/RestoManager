@@ -5,6 +5,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { createDefaultSuperAdmin } from "./super-admin-init";
 import { storage } from "./storage";
 import { DEFAULT_PERMISSIONS } from "@shared/permissions";
+import path from 'path'
 
 const app = express();
 app.use(express.json());
