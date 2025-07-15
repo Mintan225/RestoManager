@@ -1,8 +1,10 @@
+// client/components/ProductForm.tsx
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { insertProductSchema } from "@shared/schema";
+import { insertProductSchema } from "@shared/schema"; // Gardez cette ligne si vous l'utilisez ailleurs, sinon elle peut être non utilisée ici.
 import authService from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -18,14 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// COMMENTEZ CES IMPORTS DE DIALOG
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogTrigger,
-// } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
 
@@ -34,14 +28,18 @@ interface Category {
   name: string;
 }
 
+// --- DÉBUT DES CORRECTIONS ZOD ---
 const productFormSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
   description: z.string().optional(),
-  price: z.string().min(1, "Le prix est requis"),
-  categoryId: z.string().min(1, "La catégorie est requise"),
-  imageUrl: z.string().optional(),
+  // Utilise z.coerce.number() pour convertir la chaîne en nombre et valider
+  price: z.coerce.number().min(0.01, "Le prix est requis et doit être positif"),
+  // Utilise z.coerce.number() pour convertir la chaîne en nombre et valider
+  categoryId: z.coerce.number().min(1, "La catégorie est requise"),
+  imageUrl: z.string().url("URL d'image invalide").optional().or(z.literal('')), // Permet une chaîne vide pour optional
   available: z.boolean().default(true),
 });
+// --- FIN DES CORRECTIONS ZOD ---
 
 type ProductFormData = z.infer<typeof productFormSchema>;
 
@@ -51,63 +49,71 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, onSuccess }: ProductFormProps) {
-  const [open, setOpen] = useState(false); // Gardez l'état 'open' pour la logique interne
+  const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // --- DÉBUT DE LA CORRECTION POUR LA RÉCUPÉRATION DES CATÉGORIES ---
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
     queryFn: async () => {
-      // Simulation temporaire pour le développement
-      await new Promise(resolve => setTimeout(resolve, 500)); 
-      return [
-        { id: 1, name: "Boissons" },
-        { id: 2, name: "Plat principal" },
-        { id: 3, name: "Desserts" },
-        { id: 4, name: "Entrées" },
-      ] as Category[];
+      try {
+        const response = await fetch("/api/categories", {
+          headers: authService.getAuthHeaders(), // Assurez-vous que l'authentification est gérée si votre API la requiert
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Échec de la récupération des catégories");
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Erreur lors de la récupération des catégories:", error);
+        throw error; // Propagez l'erreur pour que TanStack Query puisse la gérer
+      }
     },
-    staleTime: Infinity,
-    cacheTime: Infinity,
+    staleTime: 5 * 60 * 1000, // Les catégories ne changent pas souvent, 5 minutes de "stale"
+    cacheTime: 10 * 60 * 1000, // Gardez en cache pendant 10 minutes
   });
+  // --- FIN DE LA CORRECTION POUR LA RÉCUPÉRATION DES CATÉGORIES ---
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: product?.name || "",
       description: product?.description || "",
-      price: product?.price ? product.price.toString() : "",
-      categoryId: product?.categoryId?.toString() || "",
+      // S'assure que le prix est une chaîne si initialement un nombre
+      price: product?.price ? product.price.toString() : "0.00", // Définit une valeur par défaut cohérente
+      categoryId: product?.categoryId?.toString() || "", // Garde en string pour la sélection initial
       imageUrl: product?.imageUrl || "",
       available: product?.available ?? true,
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: ProductFormData) => { // Type data correctement
       console.log("Creating product with data:", data);
       try {
         const response = await fetch("/api/products", {
           method: "POST",
-          headers: authService.getAuthHeaders(),
-          body: JSON.stringify({
-            ...data,
-            price: parseFloat(data.price),
-            categoryId: parseInt(data.categoryId),
-          }),
+          headers: {
+            "Content-Type": "application/json", // Ajouté explicitement
+            ...authService.getAuthHeaders(),
+          },
+          body: JSON.stringify(data), // Zod a déjà converti price et categoryId en nombres
         });
 
         if (!response.ok) {
           const error = await response.json();
           console.error("API error:", error);
-          throw new Error(error.message || "Failed to create product");
+          throw new Error(error.message || "Échec de la création du produit");
         }
 
         const result = await response.json();
         console.log("Product created successfully:", result);
         return result;
       } catch (error) {
-        console.error("Network error:", error);
+        console.error("Erreur réseau ou API:", error);
         throw error;
       }
     },
@@ -131,20 +137,19 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: ProductFormData) => { // Type data correctement
       const response = await fetch(`/api/products/${product.id}`, {
         method: "PUT",
-        headers: authService.getAuthHeaders(),
-        body: JSON.stringify({
-          ...data,
-          price: parseFloat(data.price),
-          categoryId: parseInt(data.categoryId),
-        }),
+        headers: {
+          "Content-Type": "application/json", // Ajouté explicitement
+          ...authService.getAuthHeaders(),
+        },
+        body: JSON.stringify(data), // Zod a déjà converti price et categoryId en nombres
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to update product");
+        throw new Error(error.message || "Échec de la mise à jour du produit");
       }
 
       return response.json();
@@ -169,14 +174,14 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
 
   const onSubmit = (data: ProductFormData) => {
     try {
-      console.log("Form submission data:", data);
+      console.log("Données de soumission du formulaire (après Zod):", data); // Vérifiez les types ici
       if (product) {
         updateMutation.mutate(data);
       } else {
         createMutation.mutate(data);
       }
     } catch (error) {
-      console.error("Form submission error:", error);
+      console.error("Erreur lors de la soumission du formulaire:", error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la soumission du formulaire",
@@ -188,13 +193,12 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   // Fonction utilitaire pour obtenir le nom de la catégorie
-  const getCategoryNameById = (id: string) => {
-    const foundCategory = categories.find(c => c.id.toString() === id);
+  const getCategoryNameById = (id: string | number) => { // Accepte string ou number
+    const foundCategory = categories.find(c => c.id.toString() === id.toString());
     return foundCategory ? foundCategory.name : "Sélectionner une catégorie";
   };
 
   return (
-    // DÉBUT DE LA CORRECTION : ENVELOPPEZ LE TOUT DANS UN FRAGMENT
     <>
       <Button onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4 mr-2" />
@@ -248,8 +252,8 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
               <div className="space-y-2">
                 <Label htmlFor="categoryId">Catégorie</Label>
                 <Select
-                  value={form.watch("categoryId")}
-                  onValueChange={(value) => form.setValue("categoryId", value)}
+                  value={form.watch("categoryId")?.toString() || ""} // S'assure que la valeur est toujours une string pour Select
+                  onValueChange={(value) => form.setValue("categoryId", z.coerce.number().parse(value))} // Convertit en nombre pour le formulaire
                 >
                   <SelectTrigger>
                     <SelectValue>
@@ -284,6 +288,11 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
                   {...form.register("imageUrl")}
                   placeholder="https://exemple.com/image.jpg"
                 />
+                {form.formState.errors.imageUrl && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.imageUrl.message}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">
@@ -311,6 +320,6 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
           </div>
         </div>
       )}
-    </> // FIN DE LA CORRECTION : FERMETURE DU FRAGMENT
+    </>
   );
 }
