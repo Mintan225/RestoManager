@@ -7,7 +7,7 @@ import {
   type Sale, type InsertSale, type Expense, type InsertExpense,
   type SuperAdmin, type InsertSuperAdmin, type SystemTab, type InsertSystemTab,
   type SystemUpdate, type InsertSystemUpdate, type SystemSetting, type InsertSystemSetting
-} from "@shared/schema";
+} from "../shared-types/schema";
 import { DEFAULT_PERMISSIONS } from "../shared-types/permissions";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sum, ne, isNull, isNotNull } from "drizzle-orm";
