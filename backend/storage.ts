@@ -8,7 +8,7 @@ import {
   type SuperAdmin, type InsertSuperAdmin, type SystemTab, type InsertSystemTab,
   type SystemUpdate, type InsertSystemUpdate, type SystemSetting, type InsertSystemSetting
 } from "@shared/schema";
-import { DEFAULT_PERMISSIONS } from "@shared/permissions";
+import { DEFAULT_PERMISSIONS } from "../shared-types/permissions";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sum, ne, isNull, isNotNull } from "drizzle-orm";
 import bcrypt from "bcrypt";

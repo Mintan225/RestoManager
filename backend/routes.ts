@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import path from "path";
 import { insertUserSchema, insertCategorySchema, insertProductSchema, insertTableSchema, insertOrderSchema, insertOrderItemSchema, insertSaleSchema, insertExpenseSchema, insertSuperAdminSchema } from "@shared/schema";
-import { DEFAULT_PERMISSIONS, type UserRole } from "@shared/permissions";
+import { DEFAULT_PERMISSIONS } from "../shared-types/permissions";
 import { storage } from "./storage";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
