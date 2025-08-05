@@ -3,7 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { createDefaultSuperAdmin } from "./super-admin-init";
 import { storage } from "./storage";
-import { DEFAULT_PERMISSIONS } from "../shared-types/permissions";
+import { DEFAULT_PERMISSIONS } from "../shared-types/permissions.ts";
 import * as schema from "../shared-types/schema";
 import path from "path";
 import { execSync } from "child_process";

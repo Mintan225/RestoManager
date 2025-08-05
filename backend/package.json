@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx index.ts",
-    "build": "esbuild index.ts --bundle --platform=node --outdir=dist --minify --external:drizzle-orm --external:drizzle-zod --external:zod",
+   "build": "esbuild index.ts --bundle --platform=node --outdir=dist --minify --external:drizzle-orm --external:drizzle-zod --external:zod",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "db:push": "dotenv -e .env -- drizzle-kit push",
     "db:generate": "drizzle-kit generate",
