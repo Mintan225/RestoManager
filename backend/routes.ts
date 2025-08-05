@@ -4,14 +4,15 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import path from "path";
-import { insertUserSchema, insertCategorySchema, insertProductSchema, insertTableSchema, insertOrderSchema, insertOrderItemSchema, insertSaleSchema, insertExpenseSchema, insertSuperAdminSchema } from "@shared/schema";
+// Correction de la ligne suivante
+import { insertUserSchema, insertCategorySchema, insertProductSchema, insertTableSchema, insertOrderSchema, insertOrderItemSchema, insertSaleSchema, insertExpenseSchema, insertSuperAdminSchema } from "../shared-types/schema";
 import { DEFAULT_PERMISSIONS } from "../shared-types/permissions";
 import { storage } from "./storage";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { APP_CONFIG, PaymentConfig, getAvailablePaymentMethods, getPaymentMethodLabel, isPaymentMethodEnabled } from "@shared/config";
+// Correction de la ligne suivante
+import { APP_CONFIG, PaymentConfig, getAvailablePaymentMethods, getPaymentMethodLabel, isPaymentMethodEnabled } from "../shared-types/config";
 import { PaymentService } from "./payment-service";
-
 // Configure multer for image uploads
 const storage_multer = multer.diskStorage({
   destination: function (req, file, cb) {
