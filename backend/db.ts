@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";  // ← driver PG natif
 import * as schema from "../shared-types/schema";
 import { DEFAULT_PERMISSIONS } from "../shared-types/permissions";
+import { methodLabel } from "../shared-types/config";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
