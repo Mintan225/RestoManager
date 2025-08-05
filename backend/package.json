@@ -11,10 +11,10 @@
     "dev": "cross-env NODE_ENV=development tsx index.ts",
     "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --minify",
     "start": "cross-env NODE_ENV=production node dist/index.js",
-    "db:push": "drizzle-kit push",
+    "db:push": "dotenv -e .env -- drizzle-kit push",
     "db:generate": "drizzle-kit generate",
-    "db:seed": "ts-node --esm seed.mts",
-    "postinstall": "npm run db:push"
+    "db:seed": "ts-node --esm seed.mts"
+    
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
@@ -31,7 +31,7 @@
     "jspdf": "^3.0.1",
     "multer": "^2.0.2",
     "nanoid": "^5.1.5",
-    "qrcode": "^2.0.0",
+    "qrcode": "^1.5.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -42,6 +42,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^22.10.2",
     "@types/qrcode": "^1.5.5",
+    "dotenv-cli": "^10.0.0",
     "drizzle-kit": "^0.29.0",
     "esbuild": "^0.24.1",
     "tsx": "^4.19.2",
