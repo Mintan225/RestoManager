@@ -1,0 +1,52 @@
+# 🔐 Variables d'environnement pour Railway
+# Copiez ces variables dans l'interface Railway (Variables tab)
+
+# ===== OBLIGATOIRES =====
+NODE_ENV=production
+JWT_SECRET=changez-cette-clé-secrète-256-bits-minimum
+SESSION_SECRET=changez-cette-session-secrète-256-bits-minimum
+
+# ===== RESTAURANT INFO =====
+RESTAURANT_NAME=Mon Restaurant
+RESTAURANT_ADDRESS=123 Rue Example, Abidjan, Côte d'Ivoire
+RESTAURANT_PHONE=+225 07 78 26 56 09
+RESTAURANT_EMAIL=contact@restaurant.ci
+RESTAURANT_WEBSITE=www.restaurant.ci
+
+# ===== CONFIGURATION MÉTIER =====
+TAX_RATE=18
+SERVICE_CHARGE=10
+DELIVERY_FEE=1000
+MINIMUM_ORDER=2000
+
+# ===== PAIEMENTS MOBILES (Optionnels) =====
+ORANGE_MONEY_ENABLED=false
+ORANGE_MONEY_MERCHANT_ID=votre-merchant-id
+ORANGE_MONEY_API_KEY=votre-api-key
+ORANGE_MONEY_API_SECRET=votre-api-secret
+
+MTN_MOMO_ENABLED=false
+MTN_MOMO_SUBSCRIPTION_KEY=votre-subscription-key
+MTN_MOMO_API_USER_ID=votre-api-user-id
+MTN_MOMO_API_KEY=votre-api-key
+
+MOOV_MONEY_ENABLED=false
+MOOV_MONEY_MERCHANT_ID=votre-merchant-id
+MOOV_MONEY_API_KEY=votre-api-key
+
+WAVE_ENABLED=false
+WAVE_API_KEY=votre-wave-api-key
+WAVE_SECRET_KEY=votre-wave-secret-key
+WAVE_MERCHANT_ID=votre-wave-merchant-id
+
+# ===== AUTO-CONFIGURÉES PAR RAILWAY =====
+# Ces variables sont automatiquement définies par Railway:
+# DATABASE_URL (connexion PostgreSQL)
+# PORT (port d'écoute)
+# RAILWAY_PUBLIC_DOMAIN (domaine public)
+
+# ===== NOTES =====
+# 1. Changez ABSOLUMENT JWT_SECRET et SESSION_SECRET
+# 2. Configurez les informations de votre restaurant
+# 3. Activez les paiements mobiles selon vos besoins
+# 4. PostgreSQL sera automatiquement configuré par Railway
