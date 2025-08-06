@@ -636,4 +636,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sales", authenticateToken, authorizePermission(["sales.create"]), async (req, res) => {
     try {
       const saleData = insertSaleSchema.parse(req.body)
-    }
+    });

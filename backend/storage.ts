@@ -697,3 +697,4 @@ export class DatabaseStorage implements IStorage {
     return systemTab;
   }
 }
+export const storage = new DatabaseStorage();
