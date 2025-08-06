@@ -1,4 +1,4 @@
-import { 
+import {
   users, categories, products, tables, orders, orderItems, sales, expenses, superAdmins,
   systemTabs, systemUpdates, systemSettings,
   type User, type InsertUser, type Category, type InsertCategory,
@@ -10,7 +10,7 @@ import {
 } from "../shared-types/schema";
 import { DEFAULT_PERMISSIONS } from "../shared-types/permissions";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sum, ne, isNull, isNotNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sum, ne, isNull, isNotNull, asc } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface IStorage {
@@ -122,7 +122,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-  const result = await db.select({
+    const result = await db.select({
       id: users.id,
       username: users.username,
       password: users.password,
@@ -134,13 +134,13 @@ export class DatabaseStorage implements IStorage {
       isActive: users.isActive,
       createdAt: users.createdAt,
       createdBy: users.createdBy,
-  })
-  .from(users)
-  .where(eq(users.username, username))
-  .limit(1);
+    })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
 
-  return result[0] || undefined;
-}
+    return result[0] || undefined;
+  }
 
   async getUsers(): Promise<User[]> {
     return await db.select().from(users).where(eq(users.isActive, true));
@@ -695,76 +695,3 @@ export class DatabaseStorage implements IStorage {
   async createSystemTab(tab: InsertSystemTab): Promise<SystemTab> {
     const [systemTab] = await db.insert(systemTabs).values(tab).returning();
     return systemTab;
-  }
-
-  async updateSystemTab(id: number, tab: Partial<InsertSystemTab>): Promise<SystemTab | undefined> {
-    const [systemTab] = await db.update(systemTabs).set(tab).where(eq(systemTabs.id, id)).returning();
-    return systemTab;
-  }
-
-  async deleteSystemTab(id: number): Promise<boolean> {
-    const result = await db.delete(systemTabs).where(eq(systemTabs.id, id));
-    return result.rowCount! > 0;
-  }
-
-  async toggleSystemTab(id: number): Promise<boolean> {
-    const tab = await db.select().from(systemTabs).where(eq(systemTabs.id, id)).limit(1);
-    if (tab.length === 0) return false;
-    
-    await db.update(systemTabs).set({ isActive: !tab[0].isActive }).where(eq(systemTabs.id, id));
-    return true;
-  }
-
-  // System updates management
-  async getSystemUpdates(): Promise<SystemUpdate[]> {
-    return await db.select().from(systemUpdates).orderBy(desc(systemUpdates.createdAt));
-  }
-
-  async createSystemUpdate(update: InsertSystemUpdate): Promise<SystemUpdate> {
-    const [systemUpdate] = await db.insert(systemUpdates).values(update).returning();
-    return systemUpdate;
-  }
-
-  async deploySystemUpdate(id: number): Promise<boolean> {
-    const [systemUpdate] = await db.update(systemUpdates).set({ 
-      isDeployed: true, 
-      deployedAt: new Date() 
-    }).where(eq(systemUpdates.id, id)).returning();
-    return !!systemUpdate;
-  }
-
-  // System settings management
-  async getSystemSettings(): Promise<SystemSetting[]> {
-    return await db.select().from(systemSettings).orderBy(systemSettings.category, systemSettings.key);
-  }
-
-  async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
-    const [setting] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
-    return setting;
-  }
-
-  async createSystemSetting(setting: InsertSystemSetting): Promise<SystemSetting> {
-    const [newSetting] = await db.insert(systemSettings).values(setting).returning();
-    return newSetting;
-  }
-
-  async updateSystemSetting(key: string, value: string): Promise<SystemSetting | undefined> {
-    try {
-      const [updated] = await db
-        .update(systemSettings)
-        .set({ 
-          value,
-          updatedAt: new Date()
-        })
-        .where(eq(systemSettings.key, key))
-        .returning();
-      
-      return updated;
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du paramètre:", error);
-      return undefined;
-    }
-  }
-}
-
-export const storage = new DatabaseStorage();
