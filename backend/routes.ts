@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import path from "path";
 import { insertUserSchema, insertCategorySchema, insertProductSchema, insertTableSchema, insertOrderSchema, insertOrderItemSchema, insertSaleSchema, insertExpenseSchema, insertSuperAdminSchema } from "../shared-types/schema";
-import { DEFAULT_PERMISSIONS } from "./permissions"; // Importation corrigée
+import { DEFAULT_PERMISSIONS } from "shared-types/permissions"; 
 import { storage } from "./storage";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
@@ -636,4 +636,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sales", authenticateToken, authorizePermission(["sales.create"]), async (req, res) => {
     try {
       const saleData = insertSaleSchema.parse(req.body)
-    });
+    }
+    finaly {
+  }
