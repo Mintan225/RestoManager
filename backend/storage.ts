@@ -695,4 +695,5 @@ export class DatabaseStorage implements IStorage {
   async createSystemTab(tab: InsertSystemTab): Promise<SystemTab> {
     const [systemTab] = await db.insert(systemTabs).values(tab).returning();
     return systemTab;
-  };
+  }
+}
