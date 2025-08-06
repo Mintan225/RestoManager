@@ -637,5 +637,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const saleData = insertSaleSchema.parse(req.body)
     }
-    finaly {
+    finally {
   }
