@@ -1,23 +1,23 @@
 // server/db.ts
-
 import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";  // ← driver PG natif
-import * as schema from "@shared/schema";
+import { drizzle } from "drizzle-orm/node-postgres"; // Utilisation du driver 'node-postgres' pour Drizzle
+import * as schema from "@shared-types/schema";
+import { env } from '../env';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// --- Gestion des variables d'environnement ---
+if (!env.DATABASE_URL) {
+  // Préférable d'utiliser un logger ici pour un contexte plus riche
+  console.error("DATABASE_URL must be set. Did you forget to provision a database?");
+  process.exit(1); // Arrêter l'application avec un code d'erreur
 }
 
+// --- Configuration SSL plus robuste ---
+const useSsl = env.DB_SSL === "true"; // Utiliser une variable d'environnement dédiée
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  // Only use SSL for external databases
-  ...(process.env.DATABASE_URL?.includes('render.com') && {
-    ssl: {
-      rejectUnauthorized: false,
-    }
-  }),
+  connectionString: env.DATABASE_URL,
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
 });
 
 export const db = drizzle(pool, { schema });
+

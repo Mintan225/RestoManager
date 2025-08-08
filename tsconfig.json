@@ -1,31 +1,21 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "lib": [
-      "ES2022"
-    ],
-    "rootDir": ".",
-    "outDir": "dist",
-    "moduleResolution": "Node",
-    "allowSyntheticDefaultImports": true,
+    "target": "es2016",
+    "module": "commonjs",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
+    "baseUrl": "./server",
     "paths": {
-      // Correction du chemin pour pointer vers le dossier partagé
-      "@shared-types/*": [
-        "../shared-types/*"
-      ]
+      "@shared-types/*": ["../shared-types/*"]
     }
   },
   "include": [
-    "**/*.ts"
+    "server/**/*",
+    "tests/**/*"
   ],
   "exclude": [
-    "node_modules",
-    "dist"
+    "node_modules"
   ]
 }
