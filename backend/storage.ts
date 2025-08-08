@@ -696,5 +696,121 @@ export class DatabaseStorage implements IStorage {
     const [systemTab] = await db.insert(systemTabs).values(tab).returning();
     return systemTab;
   }
+
+  /**
+   * Met à jour un onglet système existant.
+   * @param id L'ID de l'onglet.
+   * @param tab Les données de l'onglet à mettre à jour.
+   * @returns L'onglet mis à jour ou undefined si non trouvé.
+   */
+  async updateSystemTab(id: number, tab: Partial<InsertSystemTab>): Promise<SystemTab | undefined> {
+    const [updated] = await db.update(systemTabs)
+      .set(tab)
+      .where(eq(systemTabs.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  /**
+   * Supprime un onglet système par son ID.
+   * @param id L'ID de l'onglet à supprimer.
+   * @returns Vrai si la suppression a réussi, faux sinon.
+   */
+  async deleteSystemTab(id: number): Promise<boolean> {
+    const result = await db.delete(systemTabs).where(eq(systemTabs.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Active ou désactive un onglet système.
+   * @param id L'ID de l'onglet à basculer.
+   * @returns Vrai si la mise à jour a réussi, faux sinon.
+   */
+  async toggleSystemTab(id: number): Promise<boolean> {
+    const [tab] = await db.select().from(systemTabs).where(eq(systemTabs.id, id));
+    if (!tab) {
+      return false;
+    }
+    const [updated] = await db.update(systemTabs)
+      .set({ isActive: !tab.isActive })
+      .where(eq(systemTabs.id, id))
+      .returning();
+    return !!updated;
+  }
+
+  // System updates management
+  /**
+   * Récupère toutes les mises à jour système, triées par date de création.
+   * @returns Une promesse résolue avec un tableau de SystemUpdate.
+   */
+  async getSystemUpdates(): Promise<SystemUpdate[]> {
+    return await db.select().from(systemUpdates).orderBy(desc(systemUpdates.createdAt));
+  }
+
+  /**
+   * Crée une nouvelle entrée de mise à jour système.
+   * @param update Les données de la mise à jour.
+   * @returns La mise à jour nouvellement créée.
+   */
+  async createSystemUpdate(update: InsertSystemUpdate): Promise<SystemUpdate> {
+    const [newUpdate] = await db.insert(systemUpdates).values(update).returning();
+    return newUpdate;
+  }
+
+  /**
+   * Simule le déploiement d'une mise à jour système en marquant la date de déploiement.
+   * @param id L'ID de la mise à jour à déployer.
+   * @returns Vrai si la mise à jour a réussi, faux sinon.
+   */
+  async deploySystemUpdate(id: number): Promise<boolean> {
+    const [updated] = await db.update(systemUpdates)
+      .set({ deployedAt: new Date() })
+      .where(eq(systemUpdates.id, id))
+      .returning();
+    return !!updated;
+  }
+
+  // System settings management
+  /**
+   * Récupère tous les paramètres système.
+   * @returns Une promesse résolue avec un tableau de SystemSetting.
+   */
+  async getSystemSettings(): Promise<SystemSetting[]> {
+    return await db.select().from(systemSettings);
+  }
+
+  /**
+   * Récupère un paramètre système par sa clé.
+   * @param key La clé du paramètre à récupérer.
+   * @returns Le paramètre trouvé ou undefined.
+   */
+  async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
+    const [setting] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    return setting || undefined;
+  }
+
+  /**
+   * Crée un nouveau paramètre système.
+   * @param setting Les données du paramètre.
+   * @returns Le paramètre nouvellement créé.
+   */
+  async createSystemSetting(setting: InsertSystemSetting): Promise<SystemSetting> {
+    const [newSetting] = await db.insert(systemSettings).values(setting).returning();
+    return newSetting;
+  }
+
+  /**
+   * Met à jour la valeur d'un paramètre système par sa clé.
+   * @param key La clé du paramètre à mettre à jour.
+   * @param value La nouvelle valeur.
+   * @returns Le paramètre mis à jour ou undefined.
+   */
+  async updateSystemSetting(key: string, value: string): Promise<SystemSetting | undefined> {
+    const [updated] = await db.update(systemSettings)
+      .set({ value })
+      .where(eq(systemSettings.key, key))
+      .returning();
+    return updated || undefined;
+  }
 }
 export const storage = new DatabaseStorage();
