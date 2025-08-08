@@ -17,6 +17,9 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
+    "@replit/vite-plugin-cartographer": "^0.2.8",
+    "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
+    "@vitejs/plugin-react": "^5.0.0",
     "bcrypt": "^6.0.0",
     "connect-pg-simple": "^10.0.0",
     "cross-env": "^3.0.0",
@@ -44,7 +47,9 @@
     "dotenv-cli": "^10.0.0",
     "drizzle-kit": "^0.29.0",
     "esbuild": "^0.24.1",
+    "picocolors": "^1.1.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vite": "^7.1.1"
   }
 }

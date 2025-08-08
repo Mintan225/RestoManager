@@ -1,4 +1,3 @@
-// server/routes.ts
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -6,12 +5,19 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import path from "path";
 import { insertUserSchema, insertCategorySchema, insertProductSchema, insertTableSchema, insertOrderSchema, insertOrderItemSchema, insertSaleSchema, insertExpenseSchema, insertSuperAdminSchema } from "@shared-types/schema";
+import { User } from '@shared-types/schema';
 import { DEFAULT_PERMISSIONS } from "@shared-types/permissions"; 
 import { storage } from "./storage";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { APP_CONFIG, PaymentConfig, getAvailablePaymentMethods, getPaymentMethodLabel, isPaymentMethodEnabled } from "@shared-types/config";
 import { PaymentService } from "./payment-service";
+
+// Define a type for the order item in the request body to avoid implicit 'any'
+interface OrderItemForCalculation {
+  price: string;
+  quantity: number;
+}
 
 // Configure multer for image uploads
 const storage_multer = multer.diskStorage({
@@ -473,7 +479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/orders", async (req, res) => {
     try {
       const { tableId, customerName, customerPhone, orderItems, paymentMethod, notes } = req.body;
-      const total = orderItems.reduce((sum: number, item: any) => {
+      const total = (orderItems as OrderItemForCalculation[]).reduce((sum: number, item) => {
         return sum + (parseFloat(item.price) * item.quantity);
       }, 0);
       const orderData = {

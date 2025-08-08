@@ -2,6 +2,7 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres"; // Utilisation du driver 'node-postgres' pour Drizzle
 import * as schema from "@shared-types/schema";
+import { User, Order } from '@shared-types/schema';
 import { env } from '../env';
 
 // --- Gestion des variables d'environnement ---
