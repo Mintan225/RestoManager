@@ -1,4 +1,4 @@
-import { APP_CONFIG, PaymentConfig, PaymentMethod } from "@shared/config";
+import { APP_CONFIG, PaymentConfig, PaymentMethod } from "@shared-types/config";
 
 // Interface pour les réponses de paiement
 export interface PaymentResponse {
@@ -59,7 +59,7 @@ abstract class BasePaymentService {
 
   abstract initiatePayment(paymentConfig: PaymentConfig): Promise<PaymentResponse>;
   abstract checkPaymentStatus(transactionId: string): Promise<PaymentStatus>;
-  abstract processWebhook(data: any): Promise<{ success: boolean; transactionId?: string }>;
+  abstract processWebhook(data: unknown): Promise<{ success: boolean; transactionId?: string }>;
 }
 
 // Service Orange Money
@@ -99,7 +99,6 @@ class OrangeMoneyService extends BasePaymentService {
         })
       });
 
-      // Correction : on caste le résultat JSON vers l'interface créée
       const data: OrangeMoneyApiResponse = await response.json();
       
       if (data.status === "SUCCESS") {
@@ -121,7 +120,6 @@ class OrangeMoneyService extends BasePaymentService {
   }
 
   async checkPaymentStatus(transactionId: string): Promise<PaymentStatus> {
-    // Implémentation du statut de paiement Orange Money
     return {
       transactionId,
       status: "pending",
@@ -132,9 +130,12 @@ class OrangeMoneyService extends BasePaymentService {
     };
   }
 
-  async processWebhook(data: any): Promise<{ success: boolean; transactionId?: string }> {
-    // Traitement des webhooks Orange Money
-    return { success: true, transactionId: data.pay_token };
+  async processWebhook(data: unknown): Promise<{ success: boolean; transactionId?: string }> {
+    // Vérifie si la donnée est un objet et qu'elle contient la propriété 'pay_token'
+    if (typeof data === 'object' && data !== null && 'pay_token' in data && typeof (data as any).pay_token === 'string') {
+      return { success: true, transactionId: (data as { pay_token: string }).pay_token };
+    }
+    return { success: false, transactionId: undefined };
   }
 }
 
@@ -166,7 +167,6 @@ class MTNMomoService extends BasePaymentService {
         }
       });
 
-      // Correction : on caste le résultat JSON vers l'interface créée
       const tokenData: MtnMomoTokenResponse = await tokenResponse.json();
       const accessToken = tokenData.access_token;
 
@@ -222,8 +222,11 @@ class MTNMomoService extends BasePaymentService {
     };
   }
 
-  async processWebhook(data: any): Promise<{ success: boolean; transactionId?: string }> {
-    return { success: true, transactionId: data.referenceId };
+  async processWebhook(data: unknown): Promise<{ success: boolean; transactionId?: string }> {
+    if (typeof data === 'object' && data !== null && 'referenceId' in data && typeof (data as any).referenceId === 'string') {
+      return { success: true, transactionId: (data as { referenceId: string }).referenceId };
+    }
+    return { success: false, transactionId: undefined };
   }
 }
 
@@ -262,7 +265,6 @@ class MoovMoneyService extends BasePaymentService {
         })
       });
 
-      // Correction : on caste le résultat JSON vers l'interface créée
       const data: MoovMoneyApiResponse = await response.json();
       
       if (data.success) {
@@ -294,8 +296,11 @@ class MoovMoneyService extends BasePaymentService {
     };
   }
 
-  async processWebhook(data: any): Promise<{ success: boolean; transactionId?: string }> {
-    return { success: true, transactionId: data.transactionId };
+  async processWebhook(data: unknown): Promise<{ success: boolean; transactionId?: string }> {
+    if (typeof data === 'object' && data !== null && 'transactionId' in data && typeof (data as any).transactionId === 'string') {
+      return { success: true, transactionId: (data as { transactionId: string }).transactionId };
+    }
+    return { success: false, transactionId: undefined };
   }
 }
 
@@ -336,7 +341,6 @@ class WaveService extends BasePaymentService {
         })
       });
 
-      // Correction : on caste le résultat JSON vers l'interface créée
       const data: WaveApiResponse = await response.json();
       
       if (data.id) {
@@ -369,8 +373,11 @@ class WaveService extends BasePaymentService {
     };
   }
 
-  async processWebhook(data: any): Promise<{ success: boolean; transactionId?: string }> {
-    return { success: true, transactionId: data.id };
+  async processWebhook(data: unknown): Promise<{ success: boolean; transactionId?: string }> {
+    if (typeof data === 'object' && data !== null && 'id' in data && typeof (data as any).id === 'string') {
+      return { success: true, transactionId: (data as { id: string }).id };
+    }
+    return { success: false, transactionId: undefined };
   }
 }
 
@@ -473,7 +480,7 @@ export class PaymentService {
     return await service.checkPaymentStatus(transactionId);
   }
 
-  static async processWebhook(method: PaymentMethod, data: any): Promise<{ success: boolean; transactionId?: string }> {
+  static async processWebhook(method: PaymentMethod, data: unknown): Promise<{ success: boolean; transactionId?: string }> {
     const service = PaymentServiceFactory.getService(method);
     if (!service) {
       return { success: false };

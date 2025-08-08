@@ -1,33 +1,31 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2022",
     "module": "ESNext",
     "lib": [
-      "ESNext",
-      "DOM"
+      "ES2022"
     ],
+    "rootDir": ".",
+    "outDir": "dist",
     "moduleResolution": "Node",
-    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "baseUrl": ".", // Le point de départ est la racine du projet
+    "baseUrl": ".",
     "paths": {
-      // Les alias pointent directement vers les dossiers
+      // Correction du chemin pour pointer vers le dossier partagé
       "@shared-types/*": [
-        "shared-types/*"
-      ],
-      "@shared/*": [
-        "shared/*"
+        "../shared-types/*"
       ]
     }
   },
   "include": [
-    "server/**/*",
-    "shared-types/**/*",
+    "**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist"
   ]
 }
