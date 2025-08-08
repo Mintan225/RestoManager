@@ -12,19 +12,20 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
+    "baseUrl": ".", // Le point de départ est la racine du projet
     "paths": {
-      // Configuration pour vos alias
-      "@shared/*": [
-        "./shared/*"
-      ],
+      // Les alias pointent directement vers les dossiers
       "@shared-types/*": [
-        "./shared-types/*"
+        "shared-types/*"
+      ],
+      "@shared/*": [
+        "shared/*"
       ]
     }
   },
   "include": [
-    "server/**/*"
+    "server/**/*",
+    "shared-types/**/*",
   ],
   "exclude": [
     "node_modules"
