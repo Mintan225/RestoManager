@@ -3,38 +3,30 @@
     "target": "ESNext",
     "module": "ESNext",
     "lib": [
-      "ESNext"
+      "ESNext",
+      "DOM"
     ],
-    "outDir": "dist",
-    "rootDir": "./",
-    "strict": true,
+    "moduleResolution": "Node",
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
     "baseUrl": ".",
-     "paths": {
-      // Assure que le code trouve les fichiers partagés
+    "paths": {
+      // Configuration pour vos alias
       "@shared/*": [
-        "shared-types/*"
+        "./shared/*"
       ],
-      // Assure que le code trouve les fichiers partagés
       "@shared-types/*": [
-        "shared-types/*"
-      ],
-      // Assure que le code trouve les fichiers du serveur
-      "@server/*": [
-        "server/*"
+        "./shared-types/*"
       ]
     }
   },
   "include": [
-    "backend/**/*.ts",
-    "scripts/**/*.ts",
-    "server/**/*.ts",
-    "shared-types/**/*.ts"
+    "server/**/*"
   ],
   "exclude": [
-    "node_modules",
-    "dist"
+    "node_modules"
   ]
 }

@@ -1,13 +1,15 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.ts";
-import { createDefaultSuperAdmin } from "./super-admin-init.ts";
-import { storage } from "./storage.ts";
+import { registerRoutes } from "./routes"; // '.ts' supprimé
+import { createDefaultSuperAdmin } from "./super-admin-init"; // '.ts' supprimé
+import { storage } from "./storage"; // '.ts' supprimé
 import { DEFAULT_PERMISSIONS } from "@shared-types/permissions";
 import * as schema from "@shared-types/schema";
 import { methodLabel } from "@shared-types/config";
 import path from "path";
 import { execSync } from "child_process";
+import { log } from "./utils/logger"; // Ajout de l'import pour la fonction 'log'
+import { setupVite, serveStatic } from "./utils/dev-utils"; // Ajout de l'import pour les fonctions de dev
 
 const app = express();
 app.use(express.json());
@@ -81,11 +83,11 @@ async function initializeSystemSettings() {
 (async () => {
   // --- Run migrations at startup ---
   try {
-    console.log("🏗️ Running database migrations (push:pg)...");
+    log("🏗️ Running database migrations (push:pg)...");
     execSync("npx drizzle-kit push", { stdio: "inherit" });
-    console.log("✅ Migrations applied.");
+    log("✅ Migrations applied.");
   } catch (e) {
-    console.error("🚨 Migration failed:", e);
+    log("🚨 Migration failed:", e);
   }
 
   // Create default admin and super admin

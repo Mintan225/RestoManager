@@ -1,9 +1,16 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, jsonb } from "drizzle-orm/pg-core";
-import { sql } from 'drizzle-orm'; // Cette ligne est correcte et nécessaire pour sql`'[]'::jsonb`
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { sql, relations } from 'drizzle-orm';
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
 
+// --- Enums pour une meilleure sécurité des types ---
+export const tableStatusEnum = pgEnum("table_status", ["available", "occupied", "reserved"]);
+export const orderStatusEnum = pgEnum("order_status", ["pending", "preparing", "ready", "completed", "cancelled"]);
+export const paymentMethodEnum = pgEnum("payment_method", ["cash", "mobile_money"]);
+export const paymentStatusEnum = pgEnum("payment_status", ["pending", "paid", "failed"]);
+export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "employee", "cashier"]);
+
+// --- Tables ---
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -11,14 +18,13 @@ export const users = pgTable("users", {
   fullName: text("full_name"),
   email: text("email"),
   phone: text("phone"),
-  role: text("role").notNull().default("employee"),
-  permissions: jsonb("permissions").$type<string[]>().notNull().default(sql`'[]'::jsonb`), // Stocke un tableau JSON vide par défaut
+  role: userRoleEnum("role").notNull().default("employee"),
+  permissions: jsonb("permissions").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => users.id),
 });
 
-// Table spéciale pour les super administrateurs
 export const superAdmins = pgTable("super_admins", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -55,7 +61,7 @@ export const tables = pgTable("tables", {
   number: integer("number").notNull().unique(),
   capacity: integer("capacity").notNull().default(4),
   qrCode: text("qr_code").notNull(),
-  status: text("status").notNull().default("available"), // available, occupied, reserved
+  status: tableStatusEnum("status").notNull().default("available"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -64,9 +70,9 @@ export const orders = pgTable("orders", {
   tableId: integer("table_id").references(() => tables.id),
   customerName: text("customer_name"),
   customerPhone: text("customer_phone"),
-  status: text("status").notNull().default("pending"), // pending, preparing, ready, completed, cancelled
-  paymentMethod: text("payment_method"), // cash, mobile_money
-  paymentStatus: text("payment_status").notNull().default("pending"), // pending, paid, failed
+  status: orderStatusEnum("status").notNull().default("pending"),
+  paymentMethod: paymentMethodEnum("payment_method"),
+  paymentStatus: paymentStatusEnum("payment_status").notNull().default("pending"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -87,7 +93,7 @@ export const sales = pgTable("sales", {
   id: serial("id").primaryKey(),
   orderId: integer("order_id").references(() => orders.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  paymentMethod: text("payment_method").notNull(),
+  paymentMethod: paymentMethodEnum("payment_method").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
@@ -103,7 +109,6 @@ export const expenses = pgTable("expenses", {
   deletedAt: timestamp("deleted_at"),
 });
 
-// Table de configuration des onglets système
 export const systemTabs = pgTable("system_tabs", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -116,7 +121,6 @@ export const systemTabs = pgTable("system_tabs", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Table pour les mises à jour système
 export const systemUpdates = pgTable("system_updates", {
   id: serial("id").primaryKey(),
   version: text("version").notNull(),
@@ -127,7 +131,17 @@ export const systemUpdates = pgTable("system_updates", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Relations
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value"),
+  description: text("description"),
+  category: text("category").default("general"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// --- Relations ---
 export const usersRelations = relations(users, ({ many }) => ({
   sales: many(sales),
 }));
@@ -175,7 +189,7 @@ export const salesRelations = relations(sales, ({ one }) => ({
   }),
 }));
 
-// Insert schemas
+// --- Insert schemas ---
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -184,8 +198,14 @@ export const insertUserSchema = createInsertSchema(users).omit({
   fullName: z.string().optional(),
   email: z.string().email("Email invalide").nullable().optional().or(z.literal("")).transform(val => val === "" ? null : val),
   phone: z.string().nullable().optional().or(z.literal("")).transform(val => val === "" ? null : val),
-  role: z.enum(["admin", "manager", "employee", "cashier"]).default("employee"),
+  role: userRoleEnum.enumValues,
   permissions: z.array(z.string()).optional(),
+});
+
+export const insertSuperAdminSchema = createInsertSchema(superAdmins).omit({
+  id: true,
+  createdAt: true,
+  lastLogin: true,
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
@@ -206,16 +226,12 @@ export const insertProductSchema = createInsertSchema(products).omit({
 export const insertTableSchema = createInsertSchema(tables).omit({
   id: true,
   createdAt: true,
-}).extend({
-  qrCode: z.string().optional(),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
   createdAt: true,
   completedAt: true,
-}).extend({
-  total: z.string().optional(),
 });
 
 export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
@@ -242,13 +258,6 @@ export const insertExpenseSchema = createInsertSchema(expenses).omit({
   ])
 });
 
-// Schema de validation pour les super admins
-export const insertSuperAdminSchema = createInsertSchema(superAdmins).omit({
-  id: true,
-  createdAt: true,
-  lastLogin: true,
-});
-
 export const insertSystemTabSchema = createInsertSchema(systemTabs).omit({
   id: true,
   createdAt: true,
@@ -260,7 +269,13 @@ export const insertSystemUpdateSchema = createInsertSchema(systemUpdates).omit({
   createdAt: true,
 });
 
-// Types
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// --- Types ---
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
@@ -272,22 +287,6 @@ export type InsertSystemTab = z.infer<typeof insertSystemTabSchema>;
 
 export type SystemUpdate = typeof systemUpdates.$inferSelect;
 export type InsertSystemUpdate = z.infer<typeof insertSystemUpdateSchema>;
-
-export const systemSettings = pgTable("system_settings", {
-  id: serial("id").primaryKey(),
-  key: text("key").notNull().unique(),
-  value: text("value"),
-  description: text("description"),
-  category: text("category").default("general"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
