@@ -1,25 +1,30 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "CommonJS",
+    "module": "ESNext",
+    "lib": [
+      "ESNext"
+    ],
     "outDir": "dist",
     "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": "./",
-    "paths": {
-    "@server/*": [
-      "server/*"
-    ],
-    
-    "@shared/*": [
-      "shared-types/*"
-    ],
-    "@shared-types/*": [
-      "shared-types/*"
-    ]
+    "baseUrl": ".",
+     "paths": {
+      // Assure que le code trouve les fichiers partagés
+      "@shared/*": [
+        "shared-types/*"
+      ],
+      // Assure que le code trouve les fichiers partagés
+      "@shared-types/*": [
+        "shared-types/*"
+      ],
+      // Assure que le code trouve les fichiers du serveur
+      "@server/*": [
+        "server/*"
+      ]
     }
   },
   "include": [
