@@ -9,12 +9,11 @@
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx index.ts",
-   "build": "node scripts/build.js",
+    "build": "node scripts/build.js",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "db:push": "dotenv -e .env -- drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:seed": "ts-node --esm seed.mts"
-    
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

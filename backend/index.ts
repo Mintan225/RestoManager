@@ -1,8 +1,8 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { createDefaultSuperAdmin } from "./super-admin-init";
-import { storage } from "./storage";
+import { registerRoutes } from "./routes.ts";
+import { createDefaultSuperAdmin } from "./super-admin-init.ts";
+import { storage } from "./storage.ts";
 import { DEFAULT_PERMISSIONS } from "@shared-types/permissions";
 import * as schema from "@shared-types/schema";
 import { methodLabel } from "@shared-types/config";
