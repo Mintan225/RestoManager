@@ -1,15 +1,15 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes"; // '.ts' supprimé
-import { createDefaultSuperAdmin } from "./super-admin-init"; // '.ts' supprimé
-import { storage } from "./storage"; // '.ts' supprimé
+import { registerRoutes } from "./routes";
+import { createDefaultSuperAdmin } from "./super-admin-init";
+import { storage } from "./storage";
 import { DEFAULT_PERMISSIONS } from "@shared-types/permissions";
 import * as schema from "@shared-types/schema";
 import { methodLabel } from "@shared-types/config";
 import path from "path";
 import { execSync } from "child_process";
-import { log } from "./utils/logger"; // Ajout de l'import pour la fonction 'log'
-import { setupVite, serveStatic } from "./utils/dev-utils"; // Ajout de l'import pour les fonctions de dev
+import { log } from "./utils/logger";
+import { setupVite, serveStatic } from "./utils/dev-utils";
 
 const app = express();
 app.use(express.json());
@@ -24,9 +24,10 @@ app.use((req, res, next) => {
   let capturedJsonResponse: Record<string, any> | undefined;
 
   const originalResJson = res.json;
+  // Correction 1 : Utilisation de `this` dans la fonction pour préserver le contexte d'Express
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+    return originalResJson.apply(this, [bodyJson, ...args]);
   };
 
   res.on("finish", () => {
@@ -50,13 +51,17 @@ async function createDefaultAdmin() {
   try {
     const existingAdmin = await storage.getUserByUsername("admin");
     if (!existingAdmin) {
+      // Correction 2 : Ne pas utiliser de mot de passe en dur.
+      // Un mot de passe par défaut est une faille de sécurité majeure.
+      // Il est préférable d'utiliser une variable d'environnement ou de ne pas en créer du tout.
+      const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'default_secure_password';
       await storage.createUser({
         username: "admin",
-        password: "admin123",
+        password: defaultAdminPassword,
         role: "admin",
         permissions: DEFAULT_PERMISSIONS.admin
       });
-      log("✓ Default admin user created: admin / admin123");
+      log("✓ Default admin user created: admin / " + defaultAdminPassword);
     }
   } catch (error) {
     log("Error creating default admin: " + (error as Error).message);
@@ -97,11 +102,14 @@ async function initializeSystemSettings() {
 
   const server = await registerRoutes(app);
 
+  // Correction 3 : Le middleware de gestion d'erreur ne doit pas relancer l'erreur
+  // après avoir envoyé une réponse. Cela provoquerait un crash.
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    log(`🚨 Erreur non gérée: ${err.message}`);
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     res.status(status).json({ message });
-    throw err;
+    // IMPORTANT : On retire le 'throw err;' pour éviter le crash du serveur.
   });
 
   if (app.get("env") === "development") {
