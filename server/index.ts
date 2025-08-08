@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic } from "./vite"; // 'log' a été supprimé de l'import
 import { createDefaultSuperAdmin } from "./super-admin-init";
 import { storage } from "./storage";
 import { DEFAULT_PERMISSIONS } from "@shared/permissions";
@@ -36,7 +36,8 @@ app.use((req, res, next) => {
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-      log(logLine);
+      // Remplacement de log par console.log
+      console.log(logLine);
     }
   });
 
@@ -53,10 +54,12 @@ async function createDefaultAdmin() {
         role: "admin",
         permissions: DEFAULT_PERMISSIONS.admin
       });
-      log("✓ Default admin user created: admin / admin123");
+      // Remplacement de log par console.log
+      console.log("✓ Default admin user created: admin / admin123");
     }
   } catch (error) {
-    log("Error creating default admin: " + (error as Error).message);
+    // Remplacement de log par console.log
+    console.log("Error creating default admin: " + (error as Error).message);
   }
 }
 
@@ -70,10 +73,12 @@ async function initializeSystemSettings() {
         description: "Nom personnalisé de l'application",
         category: "branding"
       });
-      log("✓ System setting app_name initialized");
+      // Remplacement de log par console.log
+      console.log("✓ System setting app_name initialized");
     }
   } catch (error) {
-    log("Error initializing system settings: " + (error as Error).message);
+    // Remplacement de log par console.log
+    console.log("Error initializing system settings: " + (error as Error).message);
   }
 }
 
@@ -109,6 +114,7 @@ async function initializeSystemSettings() {
 
   const port = 5000;
   server.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
-    log(`serving on port ${port}`);
+    // Remplacement de log par console.log
+    console.log(`serving on port ${port}`);
   });
 })();
