@@ -10,8 +10,9 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": "./",
     "paths": {
-      "@shared-types/*": ["shared-types/*"]
-    }
+  "@shared/*": ["./shared/*"],
+  "@shared-types/*": ["./shared-types/*"]
+}
   },
   "include": [
     "backend/**/*.ts",
