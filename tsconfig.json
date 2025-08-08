@@ -10,12 +10,16 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": "./",
     "paths": {
-      "@server/*": [
-        "server/*"
-      ],
-      "@shared-types/*": [
-        "shared-types/*"
-      ]
+    "@server/*": [
+      "server/*"
+    ],
+    
+    "@shared/*": [
+      "shared-types/*"
+    ],
+    "@shared-types/*": [
+      "shared-types/*"
+    ]
     }
   },
   "include": [
