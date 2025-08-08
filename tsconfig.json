@@ -10,13 +10,19 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": "./",
     "paths": {
-  "@shared/*": ["./shared/*"],
-  "@shared-types/*": ["./shared-types/*"]
-}
+      "@shared/*": [
+        "shared/*"
+      ],
+      "@shared-types/*": [
+        "shared-types/*"
+      ]
+    }
   },
   "include": [
     "backend/**/*.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "shared/**/*.ts",
+    "shared-types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
