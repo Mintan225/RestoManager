@@ -11,7 +11,7 @@
     "baseUrl": "./",
     "paths": {
       "@shared/*": [
-        "shared/*"
+        "server/*"
       ],
       "@shared-types/*": [
         "shared-types/*"
@@ -21,7 +21,7 @@
   "include": [
     "backend/**/*.ts",
     "scripts/**/*.ts",
-    "shared/**/*.ts",
+    "server/**/*.ts",
     "shared-types/**/*.ts"
   ],
   "exclude": [
