@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx index.ts",
-    "build": "nest build",
+    "build": "npx nest build",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "db:push": "dotenv -e .env -- drizzle-kit push",
     "db:generate": "drizzle-kit generate",
