@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { users, categories, products, tables, orders, orderItems, sales, expenses, superAdmins, systemTabs, systemUpdates, systemSettings } from "@shared/schema";
 import { DEFAULT_PERMISSIONS } from "@shared/permissions";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sum, ne, isNull, isNotNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sum, ne, isNull, isNotNull, asc } from "drizzle-orm";
 import bcrypt from "bcrypt";
 export class DatabaseStorage {
     // Users

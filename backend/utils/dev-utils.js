@@ -1,13 +1,24 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 import { log } from "./logger";
 // Fonction pour configurer le serveur Vite en mode développement
-export async function setupVite(app, server) {
-    const { createServer } = await import("vite");
-    const vite = await createServer({
-        server: { middlewareMode: true },
-        appType: "custom"
+export function setupVite(app, server) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { createServer } = yield import("vite");
+        const vite = yield createServer({
+            server: { middlewareMode: true },
+            appType: "custom"
+        });
+        app.use(vite.middlewares);
+        log("✓ Vite dev server middleware activated.");
     });
-    app.use(vite.middlewares);
-    log("✓ Vite dev server middleware activated.");
 }
 // Fonction pour servir les fichiers statiques en mode production
 export function serveStatic(app) {

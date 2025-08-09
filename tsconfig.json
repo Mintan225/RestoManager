@@ -1,13 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
+    "target": "es2016",
+    "module": "esnext",
     "moduleResolution": "node",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "dist"
+    "baseUrl": ".",
+    "outDir": "dist",
+    "paths": {
+  "@shared/*": ["../server/*"],
+  "@shared-types/*": ["../shared-types/*"],
+  "@/*": ["./src/*"]
+    }
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules"]

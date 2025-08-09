@@ -19,7 +19,7 @@
     "@neondatabase/serverless": "^0.10.4",
     "bcrypt": "^6.0.0",
     "connect-pg-simple": "^10.0.0",
-    "cross-env": "^3.0.0",
+    "cross-env": "^10.0.0",
     "date-fns": "^3.6.0",
     "dotenv": "^17.2.0",
     "drizzle-orm": "^0.39.3",
@@ -44,8 +44,8 @@
     "@types/node": "^22.17.1",
     "@types/qrcode": "^1.5.5",
     "dotenv-cli": "^10.0.0",
-    "drizzle-kit": "^0.29.0",
-    "esbuild": "^0.24.1",
+    "drizzle-kit": "^0.31.4",
+    "esbuild": "^0.25.8",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

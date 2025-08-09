@@ -1,3 +1,12 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 import "dotenv/config";
 import express from "express";
 import { registerRoutes } from "./routes";
@@ -38,45 +47,49 @@ app.use((req, res, next) => {
     });
     next();
 });
-async function createDefaultAdmin() {
-    try {
-        const existingAdmin = await storage.getUserByUsername("admin");
-        if (!existingAdmin) {
-            // Correction 2 : Ne pas utiliser de mot de passe en dur.
-            // Un mot de passe par défaut est une faille de sécurité majeure.
-            // Il est préférable d'utiliser une variable d'environnement ou de ne pas en créer du tout.
-            const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'default_secure_password';
-            await storage.createUser({
-                username: "admin",
-                password: defaultAdminPassword,
-                role: "admin",
-                permissions: DEFAULT_PERMISSIONS.admin
-            });
-            log("✓ Default admin user created: admin / " + defaultAdminPassword);
+function createDefaultAdmin() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const existingAdmin = yield storage.getUserByUsername("admin");
+            if (!existingAdmin) {
+                // Correction 2 : Ne pas utiliser de mot de passe en dur.
+                // Un mot de passe par défaut est une faille de sécurité majeure.
+                // Il est préférable d'utiliser une variable d'environnement ou de ne pas en créer du tout.
+                const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'default_secure_password';
+                yield storage.createUser({
+                    username: "admin",
+                    password: defaultAdminPassword,
+                    role: "admin",
+                    permissions: DEFAULT_PERMISSIONS.admin
+                });
+                log("✓ Default admin user created: admin / " + defaultAdminPassword);
+            }
         }
-    }
-    catch (error) {
-        log("Error creating default admin: " + error.message);
-    }
-}
-async function initializeSystemSettings() {
-    try {
-        const appNameSetting = await storage.getSystemSetting("app_name");
-        if (!appNameSetting) {
-            await storage.createSystemSetting({
-                key: "app_name",
-                value: "Restaurant Manager",
-                description: "Nom personnalisé de l'application",
-                category: "branding"
-            });
-            log("✓ System setting app_name initialized");
+        catch (error) {
+            log("Error creating default admin: " + error.message);
         }
-    }
-    catch (error) {
-        log("Error initializing system settings: " + error.message);
-    }
+    });
 }
-(async () => {
+function initializeSystemSettings() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const appNameSetting = yield storage.getSystemSetting("app_name");
+            if (!appNameSetting) {
+                yield storage.createSystemSetting({
+                    key: "app_name",
+                    value: "Restaurant Manager",
+                    description: "Nom personnalisé de l'application",
+                    category: "branding"
+                });
+                log("✓ System setting app_name initialized");
+            }
+        }
+        catch (error) {
+            log("Error initializing system settings: " + error.message);
+        }
+    });
+}
+(() => __awaiter(void 0, void 0, void 0, function* () {
     // --- Run migrations at startup ---
     try {
         log("🏗️ Running database migrations (push:pg)...");
@@ -87,10 +100,10 @@ async function initializeSystemSettings() {
         log("🚨 Migration failed:", e);
     }
     // Create default admin and super admin
-    await createDefaultAdmin();
-    await createDefaultSuperAdmin();
-    await initializeSystemSettings();
-    const server = await registerRoutes(app);
+    yield createDefaultAdmin();
+    yield createDefaultSuperAdmin();
+    yield initializeSystemSettings();
+    const server = yield registerRoutes(app);
     // Correction 3 : Le middleware de gestion d'erreur ne doit pas relancer l'erreur
     // après avoir envoyé une réponse. Cela provoquerait un crash.
     app.use((err, _req, res, _next) => {
@@ -101,7 +114,7 @@ async function initializeSystemSettings() {
         // IMPORTANT : On retire le 'throw err;' pour éviter le crash du serveur.
     });
     if (app.get("env") === "development") {
-        await setupVite(app, server);
+        yield setupVite(app, server);
     }
     else {
         serveStatic(app);
@@ -110,4 +123,4 @@ async function initializeSystemSettings() {
     server.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
         log(`serving on port ${port}`);
     });
-})();
+}))();

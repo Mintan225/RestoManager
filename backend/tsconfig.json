@@ -1,18 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "lib": ["ES2022"],
-    "allowSyntheticDefaultImports": true,
+    "target": "es2016",
+    "module": "commonjs",
+    "rootDir": "./src",
+    "outDir": "./dist",
     "esModuleInterop": true,
-    "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "nodenext",
-    "baseUrl": ".",
+    "strict": true,
+    "skipLibCheck": true,
     "paths": {
-      "@shared-types/*": ["./shared-types/*"],
-      "@shared/*": ["./shared/*"]
-    }
+  "@shared/*": ["../server/*"],
+  "@shared-types/*": ["../shared-types/*"]
   },
-  "exclude": ["node_modules", "**/dist", "**/build"]
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
